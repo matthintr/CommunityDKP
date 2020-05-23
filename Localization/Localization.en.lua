@@ -317,6 +317,7 @@ core.L = {
   INVITE = "Invite",
   INVITESELECTED = "Invite Selected to Raid",
   ITEM = "Item",
+  ITEMS = "Items",
   ITEMCOST = "Item Cost",
   ITEMCOSTTTDESC = "DKP to charge player for item.",
   ITEMCOSTTYPES = "Item Cost Types",
