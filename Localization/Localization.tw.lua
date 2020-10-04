@@ -54,7 +54,7 @@ if GetLocale() == "zhTW" then
     ADDNEGVALUES = "添加至負值",
     ADDRAIDMEMBERS = "添加團隊成員",
     ADDRAIDMEMBERSCONFIRM = "您確定要向DKP表添加缺少的RAID成員嗎？",
-    ADDRAIDMEMBERSTTDESC = "將公會中的所有團隊成員添加到DKP表中。",
+    ADDRAIDMEMBERSTTDESC = "將公會中的所有團隊成員添加到DKP表中。", --TODO remove the "in guild" qualifier
     ADDREMDKPTABLEENTRIES = "添加/刪除DKP表條目",
     ADDTARGET = "添加目標",
     ADDTARGETTODKPTABLE = "將目標添加到DKP表",
@@ -87,6 +87,8 @@ if GetLocale() == "zhTW" then
     ANTISNIPETTWARN = "設置為0以關閉反竊聽。",
     APPDECAYTTDESC = "您希望以每週衰减的管道减少DKP條目的DKP量。這應該是一個正數。如果未在下麵選擇“僅選定玩家”，則它將應用於所有條目。",
     APPDECAYTTWARN = "警告：無法撤銷。",
+    ANNOUNCEINRAIDWARNING = "Announce in Raid Warning", -- NEEDS TRANSLATIONS
+    ANNOUNCEINRAIDWARNINGDESC = "If checked, announcements for higgest bid/bidder will be broadcasted via Raid Warning, not Raid chat.", -- NEEDS TRANSLATIONS
     APPLYDECAY = "應用衰退",
     AREYOUSURE = "你確定你願意",
     AREYOUSUREBROADCAST = "您確定要廣播DKP模式設置嗎？",
@@ -361,6 +363,7 @@ if GetLocale() == "zhTW" then
     INZONEONLY = "在同一區域",
     INZONEONLYTTDESC = "這只會將突襲DKP獎勵給與您位於同一區域的玩家。 （用於自動獎勵，突襲計時器和零和分配）",
     ITEM = "項目",
+    ITEMS = "Items",
     ITEMCOST = "物品成本",
     ITEMCOSTTTDESC = "DKP向玩家收取物品費用。",
     ITEMCOSTTYPES = "物料成本類型",
@@ -532,6 +535,7 @@ if GetLocale() == "zhTW" then
     PLAYERSFORREASON = "玩家原因",
     PLAYERVALIDATE = "未選擇玩家",
     PLEASEUSENUMS = "請使用數字。",
+    PRICETAB = "Pricing", --TODO
     PLEASEVALIDATE = "無效的條目已被刪除。 請驗證您的表格。 （在DKP表的右鍵單擊上下文菜單中）",
     POINTS = "點數",
     POINTSTTDESC = "在DKP錶中輸入分配給選定玩家的DKP數量。預設值可以在下麵的“選項”選項卡中更改。",
@@ -688,6 +692,7 @@ if GetLocale() == "zhTW" then
     TEAMCURRENTLISTDESC2 = "All tabs/tables base their data on value coming from this dropdown. Be sure to always check which team you have selected before awarding any DKP or starting the raid timer.",
     TEAMCURRENTLISTDESC3 = "You cannot change the currently selected team from this drop down. To change currently selected team go to /dkp main window",
     TEAMLIST = "List of teams",
+    TEAMCURRENTLISTLABEL = "Team selector",
     TEAMLISTDESC = "List of all the teams defined for current player's realm/guild. Team is a smaller subsection of a guild. Usefull for guilds with more than one raiding groups",
     TEAMMANAGEMENTHEADER = "Guild team management section",
     TEAMSELECT = "Select Team",
@@ -808,16 +813,17 @@ if GetLocale() == "zhTW" then
     PASS                  = "通過",
 
     MIGRATIONDETECTED     = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables and settings to CommunityDKP?", --TODO TRANSLATE:
+    MIGRATIONTEAM         = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables|nas a NEW TEAM for your current GUILD|nto CommunityDKP?", --TODO TRANSLATE:
     MIGRATIONUNAVAILABLE  = "Please disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP.", --TODO TRANSLATE:
     MIGRATIONCONFIRM      = "This will overwrite your existing CommunityDKP tables and settings.|n|nDo you want to continue?", --TODO TRANSLATE:
     MIGRATIONCANCELED     = "Migration canceled.|n|nPlease disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP without using your current tables and settings.", --TODO TRANSLATE:
     MIGRATIONCOMPLETED    = "Migration complete.|n|nPlease disable MonolithDKP and /reload the UI.", --TODO TRANSLATE:
 
     --TODO TRANSLATE:
-    CHANGELOG1 = "CommunityDKP - Update 2",
-    CHANGELOG2 = " - Numerous Bug Fixes and Enhancements",
-    CHANGELOG3 = " - Migration Assitant from MonolithDKP",
-    CHANGELOG4 = " - Better Syncing of DKP Table when Profiles are added",
+    CHANGELOG1 = "CommunityDKP - v3.2.3",
+    CHANGELOG2 = " - Upgraded and Refactored the MinBids Table",
+    CHANGELOG3 = " - Fixed a Minbid Save Issue on Disenchant that was removing the Minbid price",
+    CHANGELOG4 = " - Implemented PriceList API Support (contribution by styxhope)",
     CHANGELOG5 = "",
     CHANGELOG6 = "",
     CHANGELOG7 = "",

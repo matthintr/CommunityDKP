@@ -222,7 +222,7 @@ function CommDKP_BroadcastFull_Init()
 			return
 		end
 		if core.Broadcast.fullCheckbox:GetChecked() == true then
-			tempTable = { DKPTable=CommDKP:GetTable(CommDKP_DKPTable, true), DKP=CommDKP:GetTable(CommDKP_DKPHistory, true), Loot=CommDKP:GetTable(CommDKP_Loot, true), Archive=CommDKP:GetTable(CommDKP_Archive, true), MinBids=CommDKP:GetTable(CommDKP_MinBids, true), Teams=teams }
+			tempTable = { DKPTable=CommDKP:GetTable(CommDKP_DKPTable, true), DKP=CommDKP:GetTable(CommDKP_DKPHistory, true), Loot=CommDKP:GetTable(CommDKP_Loot, true), Archive=CommDKP:GetTable(CommDKP_Archive, true), MinBids=CommDKP:FormatPriceTable(), Teams=teams }
 		elseif core.Broadcast.mergeCheckbox:GetChecked() == true then
 			tempTable = CommDKP_MergeTable_Create()
 		end
@@ -486,7 +486,7 @@ function CommDKP_MergeTable_Create()
 	local teams = CommDKP:GetTable(CommDKP_DB, false)["teams"]
 
 	for i=1, #CommDKP:GetTable(CommDKP_DKPHistory, true) do
-		if CommDKP:GetTable(CommDKP_DKPHistory, true)[i].date > (time() - 1209600) and CommDKP:GetTable(CommDKP_DKPHistory, true)[i].date > core.DB.defaults.installed210 then
+		if CommDKP:GetTable(CommDKP_DKPHistory, true)[i].date > (time() - 1209600) then
 			table.insert(tempDKP, CommDKP:GetTable(CommDKP_DKPHistory, true)[i])
 		else
 			break
@@ -494,7 +494,7 @@ function CommDKP_MergeTable_Create()
 	end
 
 	for i=1, #CommDKP:GetTable(CommDKP_Loot, true) do
-		if CommDKP:GetTable(CommDKP_Loot, true)[i].date > (time() - 1209600) and CommDKP:GetTable(CommDKP_Loot, true)[i].date > core.DB.defaults.installed210 then
+		if CommDKP:GetTable(CommDKP_Loot, true)[i].date > (time() - 1209600) then
 			table.insert(tempLoot, CommDKP:GetTable(CommDKP_Loot, true)[i])
 		else
 			break
@@ -502,7 +502,7 @@ function CommDKP_MergeTable_Create()
 	end
 
 	for i=1, #CommDKP:GetTable(CommDKP_DKPTable, true) do
-		table.insert(profiles, { player=CommDKP:GetTable(CommDKP_DKPTable, true)[i].player, class=CommDKP:GetTable(CommDKP_DKPTable, true)[i].class })
+		table.insert(profiles, CommDKP:GetTable(CommDKP_DKPTable, true)[i])
 	end
 
 	local tempTable = { DKP=tempDKP, Loot=tempLoot, Profiles=profiles, Teams=teams }

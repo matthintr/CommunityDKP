@@ -273,18 +273,24 @@ function CommDKP:ViewLimited(raid, standby, raiders)
 			local guildSize = GetNumGuildMembers();
 			local name, rankIndex;
 
+			local nameIndices = {}
+			for i, entry in pairs(CommDKP:GetTable(CommDKP_DKPTable, true)) do
+				nameIndices[entry.player] = i
+			end
+			local rankList = CommDKP:GetGuildRankList()
+			local raiderRanks = {}
+			for i, rank in ipairs(core.DB.raiders) do
+				raiderRanks[rank] = true
+			end
+			
 			for i=1, guildSize do
 				name,_,rankIndex = GetGuildRosterInfo(i)
 				name = strsub(name, 1, string.find(name, "-")-1)      -- required to remove server name from player (can remove in classic if this is not an issue)
-				local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_DKPTable, true), name)
+				local search = nameIndices[name]
 
 				if search then
-					local rankList = CommDKP:GetGuildRankList()
-
-					local match_rank = CommDKP:Table_Search(core.DB.raiders, rankList[rankIndex+1].name)
-
-					if match_rank then
-						table.insert(tempTable, CommDKP:GetTable(CommDKP_DKPTable, true)[search[1][1]])
+					if raiderRanks[rankList[rankIndex+1].name] then
+						table.insert(tempTable, CommDKP:GetTable(CommDKP_DKPTable, true)[search])
 					end
 				end
 			end
@@ -319,6 +325,40 @@ local function RightClickMenu(self)
 
 	if #CommDKP:GetTable(CommDKP_Standby, true) < 1 then disabled = true else disabled = false end
 
+	--Build Team Table for Manage Tables
+	local manageTeamTables = {}
+	local teams = CommDKP:GetTable(CommDKP_DB, false)["teams"]
+	local teamMenuText = "";
+
+	for teamIndex,team in pairs(teams) do
+		local teamDisabled = false;
+
+		local nameIndices = {}
+		for i, entry in pairs(CommDKP:GetTable(CommDKP_DKPTable, true, teamIndex)) do
+			nameIndices[entry.player] = i
+		end
+
+		if teamIndex == CommDKP:GetCurrentTeamIndex() then
+			teamDisabled = true;
+		end
+
+		if #core.SelectedData < 2 then
+			teamMenuText = string.format("Copy %s to %s",core.WorkingTable[self.index].player,team.name);
+			if nameIndices[core.WorkingTable[self.index].player] then
+				teamDisabled = true;
+			end
+		else
+			teamMenuText = string.format("Copy %s to %s","Selected Players",team.name);
+		end
+	
+		local teamMenu = { text = teamMenuText, notCheckable = true, disabled = teamDisabled, func = function()
+			CommDKP:CopyProfileToTeam(self.index, teamIndex)
+			ToggleDropDownMenu(nil, nil, menuFrame)
+		end }
+		tinsert(manageTeamTables, teamMenu);
+	end
+	
+	-- Build Full Menu
 	menu = {
 		{ text = L["MULTIPLESELECT"], isTitle = true, notCheckable = true}, --1
 		{ text = L["INVITESELECTED"], notCheckable = true, func = function()
@@ -359,7 +399,7 @@ local function RightClickMenu(self)
 					end },
 					{ text = L["VIEWCORERAID"], notCheckable = true, func = function()
 						CommDKP:ViewLimited(false, false, true)
-						CommDKP:SortDKPTable("class", "Reset")
+						CommDKP:SortDKPTable(core.currentSort, "reset")
 						core.CurSubView = "core"
 						ToggleDropDownMenu(nil, nil, menuFrame)
 					end },
@@ -396,7 +436,11 @@ local function RightClickMenu(self)
 		{ text = L["MANAGECORELIST"], notCheckable = true, hasArrow = true,
 				menuList = {}
 		}, --11
-		{ text = " ", notCheckable = true, disabled = true}, --12
+		{ text = " ", notCheckable = true, disabled = true}, --8
+		{ text = "Manage Tables", isTitle = true, notCheckable = true}, --9
+		{ text = "Copy Profile", notCheckable = true, hasArrow = true,
+				menuList = manageTeamTables
+		},
 		{ text = L["RESETPREVIOUS"], notCheckable = true, func = function()
 			for i=1, #core.SelectedData do
 				CommDKP:reset_prev_dkp(core.SelectedData[i].player)
@@ -554,11 +598,15 @@ local function RightClickMenu(self)
 	local guildSize = GetNumGuildMembers();
 	local name, rankIndex;
 	local tempTable = {}
+	local nameIndices = {}
+	for i, entry in pairs(CommDKP:GetTable(CommDKP_DKPTable, true)) do
+		nameIndices[entry.player] = i
+	end
 
 	for i=1, guildSize do
 		name,_,rankIndex = GetGuildRosterInfo(i)
 		name = strsub(name, 1, string.find(name, "-")-1)      -- required to remove server name from player (can remove in classic if this is not an issue)
-		local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_DKPTable, true), name)
+		local search = nameIndices[name]
 
 		if search then
 			local rankList = CommDKP:GetGuildRankList()
@@ -566,7 +614,7 @@ local function RightClickMenu(self)
 			local match_rank = CommDKP:Table_Search(core.DB.raiders, rankList[rankIndex+1].name)
 
 			if match_rank then
-				table.insert(tempTable, CommDKP:GetTable(CommDKP_DKPTable, true)[search[1][1]])
+				table.insert(tempTable, CommDKP:GetTable(CommDKP_DKPTable, true)[search])
 			end
 		end
 	end
@@ -578,7 +626,7 @@ local function RightClickMenu(self)
 	table.wipe(tempTable);
 
 	if core.IsOfficer == false then
-		for i=8, #menu-2 do
+		for i=8, #menu do
 			menu[i].disabled = true
 		end
 
@@ -645,6 +693,25 @@ end
 function CommDKP:DKPTable_Update()
 	if not CommDKP.UIConfig:IsShown() then     -- does not update list if DKP window is closed. Gets done when /dkp is used anyway.
 		return;
+	end
+
+	if core.RepairWorking then
+		print("[CommunityDKP] DKP Table Repair Started");
+		for i=1, #CommDKP:GetTable(CommDKP_DKPTable, true) do
+			local record = CommDKP:GetTable(CommDKP_DKPTable, true)[i];
+			local bad = false;
+			if record["dkp"] == nil then bad = true	end
+			if record["previous_dkp"] == nil then bad = true end
+			if record["lifetime_spent"] == nil then bad = true end
+			if record["lifetime_gained"] == nil then bad = true end
+			if bad then
+				print("Removing DKP Table Record "..tostring(i));
+				tremove(CommDKP:GetTable(CommDKP_DKPTable, true), i)
+				tremove(core.WorkingTable, i)
+			end
+		end
+		print("[CommunityDKP] DKP Table Repair Complete");
+		core.RepairWorking = false;
 	end
 
 	if core.CurView == "limited" then  -- recreates WorkingTable if in limited view (view raid, core raiders etc)

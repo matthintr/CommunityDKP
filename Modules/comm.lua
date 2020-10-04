@@ -79,6 +79,15 @@ function CommDKP.Sync:OnEnable()
   CommDKP.Sync:RegisterComm("CDKProfileSend", CommDKP.Sync:OnCommReceived()) -- Broadcast Player Profile for Update or Create
 end
 
+function GetNameFromLink(link)
+  if link == nil then
+    return "Item Name Not Found - Bad Link";
+  end
+
+  local _, _, Color, Ltype, itemID, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name = string.find(link,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?");
+  return Name;
+end
+
 function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
 
   --local msgType = prefix or "nil";
@@ -113,7 +122,7 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
       return;
     end
 
-    -- decompresed is not null meaning data is coming from 2.3.0, lets go
+    -- decompresed is not null meaning data is coming from 2.3.0 or CommunityDKP
     success, _objReceived = LibAceSerializer:Deserialize(decompressed);
     
     --[[ 
@@ -155,17 +164,17 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
 
                   local off1,date1 = strsplit("-", value);
 
-                  if CommDKP:ValidateSender(off1) and tonumber(date1) > core.DB.defaults.installed210 then
+                  if CommDKP:ValidateSender(off1) then
                     if property == "Loot" then
 
-                      local searchLoot = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_Loot, true, tostring(tableIndex)), Loot, "index")
+                      local searchLoot = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_Loot, true, tostring(tableIndex)), value, "index")
 
                       if not searchLoot then
                         CommDKP:GetTable(CommDKP_Loot, true, tostring(tableIndex)).seed = value
                       end
 
                     elseif property == "DKPHistory" then
-                      local searchDKPHistory = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_DKPHistory, true, tostring(tableIndex)), Loot, "index")
+                      local searchDKPHistory = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_DKPHistory, true, tostring(tableIndex)), value, "index")
                       
                       if not searchDKPHistory then
                         CommDKP:GetTable(CommDKP_DKPHistory, true, tostring(tableIndex)).seed = value
@@ -180,7 +189,7 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
       elseif prefix == "CommDKPBidder" then
         if core.BidInProgress and core.IsOfficer then
           if _objReceived.Data == "pass" then
-            CommDKP:Print(sender.." has passed.")
+              -- CommDKP:Print(sender.." has passed.")  --TODO: Let's do something different here at some point.
             return
           else
             CommDKP_CHAT_MSG_WHISPER(_objReceived.Data, sender)
@@ -287,6 +296,7 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
             end
   
             CommDKP:GetTable(CommDKP_Profiles, true, teamIndex)[sender].role = curSelection.role;
+            CommDKP:GetTable(CommDKP_DKPTable, true, teamIndex)[search[1][1]].role = curSelection.role;
           end
         end
         return;
@@ -316,9 +326,17 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
           CommDKP:Print(_objReceived.Data)
         elseif prefix == "CommDKPPreBroad" then
           if sender ~= UnitName("player") then
-            print("[CommunityDKP] COMMS: Full Broadcast started by "..sender.." for team "..CommDKP:GetTeamName(_objReceived.CurrentTeam));
+            if _objReceived.Data == "CommDKPAllTabs" then
+              print("[CommunityDKP] COMMS: Full broadcast started by "..sender.." for team "..CommDKP:GetTeamName(_objReceived.CurrentTeam));
+            elseif _objReceived.Data == "CommDKPMerge" then
+              print("[CommunityDKP] COMMS: 2-week merge broadcast started by "..sender.." for team "..CommDKP:GetTeamName(_objReceived.CurrentTeam));
+            end
           else
-            print("[CommunityDKP] COMMS: You started Full Broadcast for team "..CommDKP:GetTeamName(_objReceived.CurrentTeam));
+            if _objReceived.Data == "CommDKPAllTabs" then
+              print("[CommunityDKP] COMMS: You started Full Broadcast for team "..CommDKP:GetTeamName(_objReceived.CurrentTeam));
+            elseif _objReceived.Data == "CommDKPMerge" then
+              print("[CommunityDKP] COMMS: You started 2-week broadcast for team "..CommDKP:GetTeamName(_objReceived.CurrentTeam));
+            end
           end
         elseif (prefix == "CommDKPCommand") then
           local command, arg1, arg2, arg3, arg4 = strsplit("#", _objReceived.Data);
@@ -422,7 +440,11 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
 
               if _objReceived.Data.MinBids ~= nil then
                 table.sort(_objReceived.Data.MinBids, function(a, b)
-                  return a["item"] < b["item"]
+                  --Ensure that if there is a data issue, we detect and move on during syncs.
+                  local aItem = a["item"] or GetNameFromLink(a["link"]);
+                  local bItem = b["item"] or GetNameFromLink(b["link"]);
+
+                  return aItem < bItem
                 end)
               end
 
@@ -444,7 +466,21 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
                     CommDKP:SetTable(CommDKP_DKPHistory, true, _objReceived.Data.DKP, _objReceived.CurrentTeam);
                     CommDKP:SetTable(CommDKP_Loot, true, _objReceived.Data.Loot, _objReceived.CurrentTeam);
                     CommDKP:SetTable(CommDKP_Archive, true, _objReceived.Data.Archive, _objReceived.CurrentTeam);
-                    CommDKP:SetTable(CommDKP_MinBids, true, _objReceived.Data.MinBids, _objReceived.CurrentTeam);
+                    
+                    local minBidTable = CommDKP:FormatPriceTable(_objReceived.Data.MinBids, true);
+                    local newMinBidTable = {}
+                    for i=1, #minBidTable do
+                      local id = minBidTable[i].itemID;
+                      if id == nil and minBidTable[i].link ~= nil then
+                        id = minBidTable[i].link:match("|Hitem:(%d+):")
+                      end
+                      if id ~= nil then
+                        newMinBidTable[id] = minBidTable[i];
+                      end
+
+                    end
+
+                    CommDKP:SetTable(CommDKP_MinBids, true, newMinBidTable, _objReceived.CurrentTeam);
                     core.DB["teams"] = _objReceived.Teams;
 
                     CommDKP:SetCurrentTeam(_objReceived.CurrentTeam)
@@ -463,14 +499,31 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
                 CommDKP:SetTable(CommDKP_DKPHistory, true, _objReceived.Data.DKP, _objReceived.CurrentTeam);
                 CommDKP:SetTable(CommDKP_Loot, true, _objReceived.Data.Loot, _objReceived.CurrentTeam);
                 CommDKP:SetTable(CommDKP_Archive, true, _objReceived.Data.Archive, _objReceived.CurrentTeam);
-                CommDKP:SetTable(CommDKP_MinBids, true, _objReceived.Data.MinBids, _objReceived.CurrentTeam);
-                core.DB["teams"] = _objReceived.Teams;
-                
-                CommDKP:SetCurrentTeam(_objReceived.CurrentTeam)
 
+                local minBidTable = CommDKP:FormatPriceTable(_objReceived.Data.MinBids, true);
+                local newMinBidTable = {}
+                for i=1, #minBidTable do
+                  local id = minBidTable[i].itemID;
+                  if id == nil and minBidTable[i].link ~= nil then
+                    id = minBidTable[i].link:match("|Hitem:(%d+):")
+                  end
+                  if id ~= nil then
+                    newMinBidTable[id] = minBidTable[i];
+                  end
+                  
+                end
+
+                CommDKP:SetTable(CommDKP_MinBids, true, newMinBidTable, _objReceived.CurrentTeam);
+
+                core.DB["teams"] = _objReceived.Teams;
+                CommDKP:SetCurrentTeam(_objReceived.CurrentTeam)
+                -- reset seeds since this is a fullbroadcast   
+                CommDKP:GetTable(CommDKP_DKPHistory, true, _objReceived.CurrentTeam).seed = 0 
+                CommDKP:GetTable(CommDKP_Loot, true, _objReceived.CurrentTeam).seed = 0
                 CommDKP:FilterDKPTable(core.currentSort, "reset")
                 CommDKP:StatusVerify_Update()
               end
+              
               print("[CommunityDKP] COMMS: Full Broadcast Receive Finished for team "..CommDKP:GetTeamName(_objReceived.CurrentTeam));
               return
             elseif prefix == "CommDKPMerge" then
@@ -545,7 +598,7 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
               for i=1, #_objReceived.Data.Loot do
                 local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_Loot, true, _objReceived.CurrentTeam), _objReceived.Data.Loot[i].index, "index")
 
-                if not search and ((CommDKP:GetTable(CommDKP_Archive, true, _objReceived.CurrentTeam).LootMeta and CommDKP:GetTable(CommDKP_Archive, true, _objReceived.CurrentTeam).LootMeta < _objReceived.Data.DKP[i].date) or (not CommDKP:GetTable(CommDKP_Archive, true, _objReceived.CurrentTeam).LootMeta)) then -- prevents adding entry if this entry has already been archived
+                if not search and ((CommDKP:GetTable(CommDKP_Archive, true, _objReceived.CurrentTeam).LootMeta and CommDKP:GetTable(CommDKP_Archive, true, _objReceived.CurrentTeam).LootMeta < _objReceived.Data.Loot[i].date) or (not CommDKP:GetTable(CommDKP_Archive, true, _objReceived.CurrentTeam).LootMeta)) then -- prevents adding entry if this entry has already been archived
                   if _objReceived.Data.Loot[i].deletes then
                     local search_del = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_Loot, true, _objReceived.CurrentTeam), _objReceived.Data.Loot[i].deletes, "index")
 
@@ -577,13 +630,16 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
                 end
               end
 
-              for i=1, #CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam) do
-                if CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam)[i].class == "NONE" then
-                  local search = CommDKP:Table_Search(_objReceived.Data.Profiles, CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam)[i].player, "player")
+              for i=1, #_objReceived.Data.Profiles do
 
-                  if search then
-                    CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam)[i].class = _objReceived.Data.Profiles[search[1][1]].class
+                local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam), _objReceived.Data.Profiles[i].player, "player")
+
+                if search then
+                  if CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam)[search[1][1]].class == "NONE" then
+                    CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam)[search[1][1]].class = _objReceived.Data.Profiles[i].class
                   end
+                else
+                  tinsert(CommDKP:GetTable(CommDKP_DKPTable, true, _objReceived.CurrentTeam),_objReceived.Data.Profiles[i])
                 end
               end
 
@@ -656,7 +712,7 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
               end
               CommDKP:FilterDKPTable(core.currentSort, "reset")
             elseif prefix == "CommDKPAddUsers" and UnitName("player") ~= sender then
-              CommDKP:AddEntitiesToDKPTable(_objReceived.Data);
+              CommDKP:AddEntitiesToDKPTable(_objReceived.Data, _objReceived.TargetTeam);
             elseif prefix == "CommDKPDelUsers" and UnitName("player") ~= sender then
               local numPlayers = 0
               local removedUsers = ""
@@ -705,7 +761,7 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
               end
               if numPlayers > 0 then
                 CommDKP:FilterDKPTable(core.currentSort, "reset")
-                CommDKP:Print("Removed "..numPlayers.." player(s): "..removedUsers)
+                CommDKP:Print("["..CommDKP:GetTeamName(_objReceived.CurrentTeam).."] ".."Removed "..numPlayers.." player(s): "..removedUsers)
               end
               return
             elseif prefix == "CommDKPDelLoot" then
@@ -793,32 +849,34 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
                   local bidInfo = _objReceived.Data[2][i]
                   local bidTeam = bidInfo[1]
                   local bidItems = bidInfo[2]
-                  for j=1, #bidItems do
-                    local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MinBids, true, bidTeam), bidItems[j].item)
-                    if search then
-                      CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[search[1][1]].minbid = bidItems[j].minbid
-                      if bidItems[j]["link"] ~= nil then
-                        CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[search[1][1]].link = bidItems[j].link
+                  if bidItems ~= nil then
+                    for j=1, #bidItems do
+                      local search = CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[bidItems[j].itemID];
+                      if search then
+                        CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[bidItems[j].itemID].minbid = bidItems[j].minbid
+                        if bidItems[j]["link"] ~= nil then
+                          CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[bidItems[j].itemID].link = bidItems[j].link
+                        end
+                        if bidItems[j]["icon"] ~= nil then
+                          CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[bidItems[j].itemID].icon = bidItems[j].icon
+                        end
+                      else
+                        CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[bidItems[j].itemID] = bidItems[j];
                       end
-                      if bidItems[j]["icon"] ~= nil then
-                        CommDKP:GetTable(CommDKP_MinBids, true, bidTeam)[search[1][1]].icon = bidItems[j].icon
-                      end
-                    else
-                      table.insert(CommDKP:GetTable(CommDKP_MinBids, true, bidTeam), bidItems[j])
-                    end
-                  end 
+                    end 
+                  end
                 end
               end
             elseif prefix == "CommDKPMaxBid" then
-
               if core.IsOfficer then
 
-                core.DB.MaxBidBySlot = _objReceived.Data[1]
+                core.DB.MaxBidBySlot = _objReceived.Data[1];
+                _objMaxBidValues = _objReceived.Data[1];
 
                 for i=1, #_objReceived.Data[2] do
                   local bidInfo = _objReceived.Data[2][i]
                   local bidTeam = bidInfo[1]
-                  local bidItems = bidInfo[2]
+                  local bidItems = bidInfo[2] or {}
 
                   for j=1, #bidItems do
                     local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MaxBids, true, bidTeam), bidItems[j].item)
@@ -835,19 +893,19 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
             elseif prefix == "CommDKPStand" then
               CommDKP:GetTable(CommDKP_Standby, true, _objReceived.Data, _objReceived.CurrentTeam);
             elseif prefix == "CommDKPSetPrice" then
-              local mode = core.DB.modes.mode;
+              _objSetPrice = _objReceived.Data;
+              local _, _, Color, Ltype, itemID, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name = string.find(_objSetPrice.link,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")
 
-              if mode == "Static Item Values" or mode == "Roll Based Bidding" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Static") then
-                local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MinBids, true, _objReceived.CurrentTeam), itemName)
-            
-                if not search then
-                  tinsert(CommDKP:GetTable(CommDKP_MinBids, true, _objReceived.CurrentTeam), _objReceived.Data)
-                elseif search and cost ~= tonumber(val) then
-                  CommDKP:GetTable(CommDKP_MinBids, true, _objReceived.CurrentTeam)[search[1][1]] = _objReceived.Data;
-                end
+              local search = CommDKP:GetTable(CommDKP_MinBids, true, _objReceived.CurrentTeam)[itemID];
 
-                CommDKP:PriceTable_Update(0);
+              if not search then
+                CommDKP:GetTable(CommDKP_MinBids, true, _objReceived.CurrentTeam)[itemID] = _objSetPrice;
+              elseif search then
+                CommDKP:GetTable(CommDKP_MinBids, true, _objReceived.CurrentTeam)[itemID] = _objSetPrice;
               end
+              
+              core.PriceTable = CommDKP:FormatPriceTable();
+              CommDKP:PriceTable_Update(0);
             
             elseif prefix == "CommDKPZSumBank" then
               if core.IsOfficer then
@@ -895,7 +953,7 @@ function CommDKP.Sync:OnCommReceived(prefix, message, distribution, sender)
   end
 end
 
-function CommDKP.Sync:SendData(prefix, data, target)
+function CommDKP.Sync:SendData(prefix, data, target, targetTeam)
 
   -- 2.3.0 object being sent with almost everything?
   -- the idea is to envelope the old message into another object and then decode it on receiving end
@@ -903,11 +961,15 @@ function CommDKP.Sync:SendData(prefix, data, target)
   -- expect to send everything through SendData
   -- the only edge case is CommDKPBuild which for now stays the same as it was in 2.1.2
 
+  targetTeam = targetTeam or CommDKP:GetCurrentTeamIndex();
+
   local _objToSend = {
     Teams = CommDKP:GetTable(CommDKP_DB, false)["teams"],
     CurrentTeam = CommDKP:GetCurrentTeamIndex(),
-    Data = nil
-  }; 
+    TargetTeam = targetTeam,
+    Data = nil,
+    Prefix=prefix
+  };
 
   if prefix == "CommDKPBuild" then
     CommDKP.Sync:SendCommMessage(prefix, data, "GUILD");
@@ -916,6 +978,10 @@ function CommDKP.Sync:SendData(prefix, data, target)
 
   -- everything else but CommDKPBuild is getting compressed
   _objToSend.Data = data; -- if we send table everytime we have to serialize / deserialize anyway
+  
+  --print("Last Sent "..prefix);
+  --_objLastSend = CopyTable(_objToSend);
+
   local _compressedObj = CommDKP.Sync:SerializeTableToString(_objToSend);
 
   if _compressedObj == nil then
@@ -972,10 +1038,18 @@ function CommDKP.Sync:SendData(prefix, data, target)
 
     if prefix == "CommDKPAllTabs" or prefix == "CommDKPMerge" then
       if target then
-        CommDKP.Sync:SendData("CommDKPPreBroad", "Full broadcast premessage", target);
+        if prefix == "CommDKPAllTabs" then
+          print("[CommunityDKP] COMMS: You started Full Broadcast for team "..CommDKP:GetTeamName(CommDKP:GetCurrentTeamIndex()).." to player "..target);
+        elseif prefix == "CommDKPMerge" then
+          print("[CommunityDKP] COMMS: You started 2-week broadcast for team "..CommDKP:GetTeamName(CommDKP:GetCurrentTeamIndex()).." to player "..target);
+        end
         CommDKP.Sync:SendCommMessage(prefix, _compressedObj, "WHISPER", target, "NORMAL", CommDKP_BroadcastFull_Callback, nil)
       else
-        CommDKP.Sync:SendData("CommDKPPreBroad", "Full broadcast premessage", nil);
+        if prefix == "CommDKPAllTabs" then
+          CommDKP.Sync:SendData("CommDKPPreBroad", "CommDKPAllTabs", nil);
+        elseif prefix == "CommDKPMerge" then
+          CommDKP.Sync:SendData("CommDKPPreBroad", "CommDKPMerge", nil);
+        end
         CommDKP.Sync:SendCommMessage(prefix, _compressedObj, "GUILD", nil, "NORMAL", CommDKP_BroadcastFull_Callback, nil)
       end
       return

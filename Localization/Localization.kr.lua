@@ -54,7 +54,7 @@ if GetLocale() == "koKR" then
     ADDNEGVALUES = "음수 값에 추가",
     ADDRAIDMEMBERS = "레이드 멤버 추가",
     ADDRAIDMEMBERSCONFIRM = "누락 된 공격 대원을 DKP 테이블에 추가 하시겠습니까?",
-    ADDRAIDMEMBERSTTDESC = "길드에있는 모든 공격대 / 파티원을 DKP 테이블에 추가합니다.",
+    ADDRAIDMEMBERSTTDESC = "길드에있는 모든 공격대 / 파티원을 DKP 테이블에 추가합니다.", --TODO remove the "in guild" qualifier
     ADDREMDKPTABLEENTRIES = "DKP 테이블 항목 추가 / 제거",
     ADDTARGET = "대상 추가",
     ADDTARGETTODKPTABLE = "DKP 테이블에 대상 추가",
@@ -85,6 +85,8 @@ if GetLocale() == "koKR" then
     ANTISNIPE = "안티 스 나이프",
     ANTISNIPETTDESC = "입찰 타이머가 10 초 미만일 때 입찰이 수신되면 입찰 타이머를 연장하려는 시간 (초)입니다. (마지막 두 번째 입찰 스니핑을 방지하려면)",
     ANTISNIPETTWARN = "도난 방지를 끄려면 0으로 설정하십시오.",
+    ANNOUNCEINRAIDWARNING = "Announce in Raid Warning", -- NEEDS TRANSLATIONS
+    ANNOUNCEINRAIDWARNINGDESC = "If checked, announcements for higgest bid/bidder will be broadcasted via Raid Warning, not Raid chat.", -- NEEDS TRANSLATIONS
     APPDECAYTTDESC = "DKP의 양 매주 감소로 DKP 항목을 줄이려고합니다. 양수 여야합니다. 아래에서 \"선택한 플레이어 만\"을 선택하지 않으면 모든 항목에 적용됩니다.",
     APPDECAYTTWARN = "경고 : 취소 할 수 없습니다.",
     APPLYDECAY = "부패 적용",
@@ -361,6 +363,7 @@ if GetLocale() == "koKR" then
     INZONEONLY = "같은 구역에서",
     INZONEONLYTTDESC = "이것은 당신과 같은 지역에있는 플레이어에게만 공격적인 DKP를 부여합니다. (자동 보너스, 레이드 타이머 및 제로섬 분배와 함께 사용)",
     ITEM = "안건",
+    ITEMS = "Items",
     ITEMCOST = "아이템 비용",
     ITEMCOSTTTDESC = "항목에 대한 플레이어를 청구하는 DKP.",
     ITEMCOSTTYPES = "품목 비용 유형",
@@ -532,6 +535,7 @@ if GetLocale() == "koKR" then
     PLAYERSFORREASON = "이유가있는 플레이어",
     PLAYERVALIDATE = "선택된 플레이어가 없습니다",
     PLEASEUSENUMS = "숫자를 사용하십시오.",
+    PRICETAB = "Pricing", --TODO
     PLEASEVALIDATE = "유효하지 않은 항목이 제거되었습니다. 테이블을 확인하십시오. (DKP 테이블의 오른쪽 클릭 컨텍스트 메뉴)",
     POINTS = "포인트들",
     POINTSTTDESC = "DKP 테이블에서 선택한 플레이어에게 배포 할 DKP의 양을 입력하십시오. 아래의 \"옵션\"탭에서 기본값을 변경할 수 있습니다.",
@@ -686,6 +690,7 @@ if GetLocale() == "koKR" then
     TEAMCURRENTLISTDESC2 = "All tabs/tables base their data on value coming from this dropdown. Be sure to always check which team you have selected before awarding any DKP or starting the raid timer.",
     TEAMCURRENTLISTDESC3 = "You cannot change the currently selected team from this drop down. To change currently selected team go to /dkp main window",
     TEAMLIST = "List of teams",
+    TEAMCURRENTLISTLABEL = "Team selector",
     TEAMLISTDESC = "List of all the teams defined for current player's realm/guild. Team is a smaller subsection of a guild. Usefull for guilds with more than one raiding groups",
     TEAMMANAGEMENTHEADER = "Guild team management section",
     TEAMSELECT = "Select Team",
@@ -806,16 +811,17 @@ if GetLocale() == "koKR" then
     PASS                  = "통과하다",
 
     MIGRATIONDETECTED     = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables and settings to CommunityDKP?", --TODO TRANSLATE:
+    MIGRATIONTEAM         = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables|nas a NEW TEAM for your current GUILD|nto CommunityDKP?", --TODO TRANSLATE:
     MIGRATIONUNAVAILABLE  = "Please disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP.", --TODO TRANSLATE:
     MIGRATIONCONFIRM      = "This will overwrite your existing CommunityDKP tables and settings.|n|nDo you want to continue?", --TODO TRANSLATE:
     MIGRATIONCANCELED     = "Migration canceled.|n|nPlease disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP without using your current tables and settings.", --TODO TRANSLATE:
     MIGRATIONCOMPLETED    = "Migration complete.|n|nPlease disable MonolithDKP and /reload the UI.", --TODO TRANSLATE:
 
     --TODO TRANSLATE:
-    CHANGELOG1 = "CommunityDKP - Update 2",
-    CHANGELOG2 = " - Numerous Bug Fixes and Enhancements",
-    CHANGELOG3 = " - Migration Assitant from MonolithDKP",
-    CHANGELOG4 = " - Better Syncing of DKP Table when Profiles are added",
+    CHANGELOG1 = "CommunityDKP - v3.2.3",
+    CHANGELOG2 = " - Upgraded and Refactored the MinBids Table",
+    CHANGELOG3 = " - Fixed a Minbid Save Issue on Disenchant that was removing the Minbid price",
+    CHANGELOG4 = " - Implemented PriceList API Support (contribution by styxhope)",
     CHANGELOG5 = "",
     CHANGELOG6 = "",
     CHANGELOG7 = "",

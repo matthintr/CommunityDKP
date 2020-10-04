@@ -44,8 +44,12 @@ CommDKP.Commands = {
       CommDKP:StatusVerify_Update()
 
       if core.IsOfficer then  
-        if ... == nil then
-          CommDKP.ToggleBidWindow()
+		if ... == nil then
+			if core.BidAuctioneer then
+				CommDKP:ToggleBidWindow()
+			else
+				CommDKP:BidInterface_Toggle()
+			end
         else
           local itemName,_,_,_,_,_,_,_,_,itemIcon = GetItemInfo(item)
           CommDKP:Print("Opening Bid Window for: ".. item)
@@ -78,14 +82,20 @@ CommDKP.Commands = {
       local item = strjoin(" ", ...)
       if not item then return end
       item = name.." "..item;
-	  local itemName,_,_,_,_,_,_,_,_,_ = GetItemInfo(item)
+	  local itemName,itemLink,_,_,_,_,_,_,_,_ = GetItemInfo(item)
 	  local cost = 0;
-	  local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MinBids, true), itemName)
+	  local _, _, Color, Ltype, itemID, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name = string.find(itemLink,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")
+	  
+	  if itemName == nil and Name ~= nil then
+		itemName = Name;
+      end
+
+	  local search = CommDKP:GetTable(CommDKP_MinBids, true)[itemID];
 
 	  if not search then
 		cost = CommDKP:GetMinBid(item)
 	  else
-		cost = CommDKP:GetTable(CommDKP_MinBids, true)[search[1][1]].minbid;
+		cost = search.minbid;
 	  end
 
 	  CommDKP:AwardConfirm(nil, cost, core.DB.bossargs.LastKilledBoss, core.DB.bossargs.CurrentRaidZone, item)
@@ -285,13 +295,6 @@ local function DoGuildUpdate()
 			CommDKP.Sync:SendData("CommDKPBuild", tostring(core.BuildNumber)) -- broadcasts build number to guild to check if a newer version is available
 			CommDKP:SendTalentsAndRole()
 
-			if not core.DB.defaults.installed210 then
-				core.DB.defaults.installed210 = time(); -- identifies when 2.1.0 was installed to block earlier posts from broadcasting in sync (for now)
-				CommDKP_ReindexTables() 					-- reindexes all entries created prior to 2.1 installation in "GuildMaster-EntryDate" format for consistency.
-				core.DB.defaults.installed = nil
-			end
-
-
 			-- send seed for every team in guild
 			-- this basically sends index of latest entry in loot and DKP tables to everyone online in guild,
 			-- if they have this entry it does nothing since they are up to date, if they dont it changes seed in those tables to the index being sent
@@ -312,7 +315,7 @@ function CommDKP:SendSeedData()
 
 		if 	#CommDKP:GetTable(CommDKP_DKPHistory, true, tostring(_teams[i][1])) > 0 and strfind(CommDKP:GetTable(CommDKP_DKPHistory, true, tostring(_teams[i][1]))[1].index, "-") then
 			local off1,date1 = strsplit("-", CommDKP:GetTable(CommDKP_DKPHistory, true, tostring(_teams[i][1]))[1].index)
-			if CommDKP:ValidateSender(off1) and tonumber(date1) > core.DB.defaults.installed210 then
+			if CommDKP:ValidateSender(off1) then
 				latestIndexForTeam[tostring(_teams[i][1])]["DKPHistory"] = CommDKP:GetTable(CommDKP_DKPHistory, true, tostring(_teams[i][1]))[1].index
 			else
 				latestIndexForTeam[tostring(_teams[i][1])]["DKPHistory"] = "start"
@@ -323,7 +326,7 @@ function CommDKP:SendSeedData()
 		
 		if #CommDKP:GetTable(CommDKP_Loot, true, tostring(_teams[i][1])) > 0 and strfind(CommDKP:GetTable(CommDKP_Loot, true, tostring(_teams[i][1]))[1].index, "-") then
 			local off2,date2 = strsplit("-", CommDKP:GetTable(CommDKP_Loot, true, tostring(_teams[i][1]))[1].index)
-			if CommDKP:ValidateSender(off2) and tonumber(date2) > core.DB.defaults.installed210 then
+			if CommDKP:ValidateSender(off2) then
 				latestIndexForTeam[tostring(_teams[i][1])]["Loot"] = CommDKP:GetTable(CommDKP_Loot, true, tostring(_teams[i][1]))[1].index
 			else
 				latestIndexForTeam[tostring(_teams[i][1])]["Loot"] = "start"
@@ -400,7 +403,7 @@ function CommDKP_OnEvent(self, event, arg1, ...)
 			if CommDKP:Table_Search(core.EncounterList, arg1) then
 				CommDKP.ConfigTab2.BossKilledDropdown:SetValue(arg1)
 
-				if core.DB.modes.StandbyOptIn then
+				if core.DB.modes.StandbyOptIn and core.RaidInProgress then
 					CommDKP_Standby_Announce(boss_name)
 				end
 
@@ -584,11 +587,6 @@ function CommDKP_OnEvent(self, event, arg1, ...)
 	elseif event == "LOOT_OPENED" then
 		CommDKP:CheckOfficer();
 		if core.IsOfficer then
-			if not IsInRaid() and arg1 == false then  -- only fires hook when autoloot is not active if not in a raid to prevent nil value error
-				CommDKP_Register_ShiftClickLootWindowHook()
-			elseif IsInRaid() then
-				CommDKP_Register_ShiftClickLootWindowHook()
-			end
 			local lootTable = {}
 			local lootList = {};
 
@@ -651,6 +649,35 @@ function CommDKP:OnInitialize(event, name)		-- This is the FIRST function to run
 	if(event == "ADDON_LOADED") then
 		C_Timer.After(5, function ()
 			core.CommDKPUI = CommDKP.UIConfig or CommDKP:CreateMenu();		-- creates main menu after 5 seconds (trying to initialize after raid frames are loaded)
+			core.KeyEventUI = CreateFrame("Frame","KeyEventFrame", UIParent);
+			core.KeyEventUI:SetScript("OnKeyDown", function(self, key)
+				if core.Initialized and core.IsOfficer then
+					if MouseIsOver(MultiBarLeft) or MouseIsOver(MultiBarRight) or MouseIsOver(MultiBarBottomLeft) or MouseIsOver(MultiBarBottomRight) or MouseIsOver(MainMenuBar) then
+						return;
+					end
+						-- TODO: Make this a configurable keybind.
+					if GameTooltip:GetItem() then
+						local item, link = GameTooltip:GetItem();
+
+						if (key == "LALT" or key == "LSHIFT") and IsShiftKeyDown() and IsAltKeyDown() then
+							
+							local _, _, Color, Ltype, itemID, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name = string.find(link,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")
+							local itemIcon = GetItemIcon(itemID);
+							local itemName, itemLink = GetItemInfo(link);
+
+							CommDKP:ToggleBidWindow(itemLink, itemIcon, itemName);
+						end
+
+						if (key == "LCTRL" or key == "LSHIFT") and IsShiftKeyDown() and IsControlKeyDown() then
+							-- TODO: Automate the Price a Bit More
+							CommDKP:AwardConfirm(nil, 0, core.DB.bossargs.LastKilledBoss, core.DB.bossargs.CurrentRaidZone, link);
+						end
+
+
+					end
+				end
+			end);
+			core.KeyEventUI:SetPropagateKeyboardInput(true);
 		end)
 		------------------------------------------------
 		-- Verify DB Schemas
@@ -677,7 +704,7 @@ function CommDKP:OnInitialize(event, name)		-- This is the FIRST function to run
 	    --	Import SavedVariables
 	    ------------------------------------
 		core.WorkingTable 		= CommDKP:GetTable(CommDKP_DKPTable, true); -- imports full DKP table to WorkingTable for list manipulation
-		core.PriceTable			= CommDKP:GetTable(CommDKP_MinBids, true);
+		core.PriceTable			= CommDKP:FormatPriceTable();
 
 		for i=1, #core.WorkingTable do
 			local CurPlayer = core.WorkingTable[i].player;
@@ -706,6 +733,14 @@ function CommDKP:OnInitialize(event, name)		-- This is the FIRST function to run
 		end)
 		
 		table.sort(core.PriceTable, function(a, b)
+			if a["item"] ~= nil and b["item"] == nil then
+				return true;
+			elseif a["item"] == nil and b["item"] ~= nil then
+				return false;
+			elseif a["item"] == nil and b["item"] == nil then
+				return false;
+			end
+
 			return a["item"] < b["item"]
 		end)
 		
@@ -823,6 +858,19 @@ function CommDKP:UpgradeDBSchema(newDbTable, oldDbTable, hasTeams, tableName)
 			newDbTable[core.defaultTable] = defaultTable;
 		end
 	end
+
+	if newDbTable.dbinfo.build < 30200 and newDbTable.dbinfo.priorbuild ~= core.BuildNumber and newDbTable.dbinfo.priorbuild ~= 0 then
+		if newDbTable.dbinfo.name == "CommDKP_MinBids" then
+			newDbTable = CommDKP:RefactorMinBidItemTable(newDbTable);
+		end
+	end
+
+	if newDbTable.dbinfo.build < 30202 and newDbTable.dbinfo.priorbuild ~= core.BuildNumber and newDbTable.dbinfo.priorbuild ~= 0 then
+		if newDbTable.dbinfo.name == "CommDKP_MinBids" then
+			newDbTable = CommDKP:VerifyMinBidItemTable(newDbTable);
+		end
+	end
+
 	-- Set Current Build Number
 	newDbTable.dbinfo.build = core.BuildNumber;
 	return newDbTable;
@@ -882,6 +930,18 @@ function CommDKP:InitializeCommDKPDB(dbTable)
 	if not dbTable.defaults.CurrentGuild then dbTable.defaults.CurrentGuild = {} end
 	if not dbTable.defaults.CurrentTeam then dbTable.defaults.CurrentTeam = "0" end;
 	if not dbTable.teams then dbTable.teams = {} end;
+	if not dbTable.modes.AnnounceRaidWarning then dbTable.modes.AnnounceRaidWarning = false end;
+	if dbTable.defaults.CustomMaxBid == nil then dbTable.defaults.CustomMaxBid = true end;
+	if dbTable.defaults.CustomMinBid == nil then dbTable.defaults.CustomMinBid = true end;
+
+	-- 3.1.3 Version Change - Removing installed Variables
+	if dbTable.defaults.installed210 then
+		dbTable.defaults.installed210 = nil;
+	end
+
+	if dbTable.defaults.installed then
+		dbTable.defaults.installed = nil;
+	end
 
 	if IsInGuild() then
 		if not dbTable.teams["0"] then 
@@ -968,28 +1028,79 @@ function CommDKP:MonolithMigration()
 
 	-- MonolithDKP is up & running - CommunityDKP will not initialise
 	CommDKP:Print("Legacy MonolithDKP addon detected - please disable it to continue with CommunityDKP!")
+	local activeCommunity = self:MonolithMigrationDbEntries("CommDKP") -- check if CommunityDKP already has table entries
+	local activeCommunitySchema = CommDKP_DB ~= nil and CommDKP:GetTable(CommDKP_DB, false)["teams"] ~= nil -- check if CommunityDKP finished schema migration
+	local activeMonolith21x = self:MonolithMigrationLegacySeed() > 0 -- check if there are usable MonolithDKP 2.1.x tables available
+	local activeMonolith22x = self:MonolithMigrationDbBuild() > 0 and self:MonolithMigrationDbEntries("MonDKP") -- same for MonolithDKP 2.2.x
 
 	-- check if we should offer migration
-	if self:MonolithMigrationDbEntries("CommDKP") -- CommunityDKP already has table entries - ABORT MIGRATION!
-		or not (self:MonolithMigrationLegacySeed() > 0 -- check if there are usable MonolithDKP 2.1.x tables available
-		or self:MonolithMigrationDbBuild() > 0 and self:MonolithMigrationDbEntries("MonDKP")) -- check if there are usable MonolithDKP 2.2.x tables available
-	then
+	if not activeCommunity and (activeMonolith21x or activeMonolith21x) then
+		-- CommunityDKP is fresh and there are MonolithDKP 2.1.x or 2.2.x tables available
+		self:MonolithMigrationLegacyDetected(function() self:MonolithMigrationProcess(false) end)
+	elseif activeCommunity and activeCommunitySchema and activeMonolith21x and IsInGuild() and CommDKP:ValidateSender(UnitName("player")) then
+		-- CommunityDKP already has data we can import MonolithDKP 2.1.x data as a new team
+		self:MonolithMigrationAsNewTeam(function() self:MonolithMigrationProcess(true) end)
+	else
+ 		-- CommunityDKP already has table entries and there is no legacy data to add as an additional team
 		self:MonolithMigrationGenericPopup(L["MIGRATIONUNAVAILABLE"])
-		return true
 	end
 
-	-- CommunityDKP is fresh and there are MonolithDKP 2.1.x or 2.2.x tables available - OFFER MIGRATION!
-	self:MonolithMigrationLegacyDetected(function()
-		local copyTableRecursive
-		copyTableRecursive = function(obj)
-    		if type(obj) ~= "table"	then return obj end
-    		local res = {}
-    		for k, v in pairs(obj) do res[copyTableRecursive(k)] = copyTableRecursive(v) end
-    		return res
-		end
+	return true -- don't initialise CommunityDKP
+end
 
-		-- copy everything from legacy addon
-		CommDKP_DB         = copyTableRecursive(MonDKP_DB) -- deep copy so we don't modify the source data
+function CommDKP:MonolithMigrationProcess(asNewTeam)
+	asNewTeam = asNewTeam or false;
+
+ 	-- add a new team?
+	local teamIndex
+	if asNewTeam then
+		teamIndex = CommDKP:AddNewTeamToGuild()
+	end
+
+ 	-- deep copy so we don't modify the source data
+	local copyTableRecursive
+	copyTableRecursive = function(obj)
+		if type(obj) ~= "table" then return obj end
+		local res = {}
+		for k, v in pairs(obj) do res[copyTableRecursive(k)] = copyTableRecursive(v) end
+		return res
+	end
+
+ 	-- rename MonDKPScaleSize property to CommDKPScaleSize for each guild / team
+	local migrateDefaultsRecursive
+	migrateDefaultsRecursive = function(table)
+		for k, v in pairs(table) do
+			if k == "defaults" then
+				if v.MonDKPScaleSize ~= nil then
+					v.CommDKPScaleSize = v.MonDKPScaleSize
+					v.MonDKPScaleSize = nil
+				end
+			elseif type(v) == "table" then
+				migrateDefaultsRecursive(v)
+			end
+		end
+	end
+
+	-- copy everything from legacy addon
+	if asNewTeam then
+	 -- local tempDB = copyTableRecursive(MonDKP_DB)
+	 -- migrateDefaultsRecursive(tempDB)
+	 -- CommDKP:SetTable(CommDKP_DB,         true, tempDB,            teamIndex)
+
+	 -- CommDKP:GetTable(CommDKP_DKPTable,   false)[teamIndex] = MonDKP_DKPTable
+		CommDKP:SetTable(CommDKP_DKPTable,   true, MonDKP_DKPTable,   teamIndex)
+		CommDKP:SetTable(CommDKP_Loot,       true, MonDKP_Loot,       teamIndex)
+		CommDKP:SetTable(CommDKP_DKPHistory, true, MonDKP_DKPHistory, teamIndex)
+		CommDKP:SetTable(CommDKP_MinBids,    true, MonDKP_MinBids,    teamIndex)
+		CommDKP:SetTable(CommDKP_MaxBids,    true, MonDKP_MaxBids,    teamIndex)
+		CommDKP:SetTable(CommDKP_Whitelist,  true, MonDKP_Whitelist,  teamIndex)
+		CommDKP:SetTable(CommDKP_Standby,    true, MonDKP_Standby,    teamIndex)
+		CommDKP:SetTable(CommDKP_Archive,    true, MonDKP_Archive,    teamIndex)
+	else
+		local tempDB = copyTableRecursive(MonDKP_DB)
+		migrateDefaultsRecursive(tempDB)
+		CommDKP_DB         = tempDB
+
 		CommDKP_DKPTable   = MonDKP_DKPTable
 		CommDKP_Loot       = MonDKP_Loot
 		CommDKP_DKPHistory = MonDKP_DKPHistory
@@ -998,33 +1109,13 @@ function CommDKP:MonolithMigration()
 		CommDKP_Whitelist  = MonDKP_Whitelist
 		CommDKP_Standby    = MonDKP_Standby
 		CommDKP_Archive    = MonDKP_Archive
+	end
 
-		-- rename MonDKPScaleSize property to CommDKPScaleSize for each guild / team
-		local migrateDefaultsRecursive
-		migrateDefaultsRecursive = function(table)
-			for k, v in pairs(table) do
-				if k == "defaults" then
-					if v.MonDKPScaleSize ~= nil then
-						v.CommDKPScaleSize = v.MonDKPScaleSize
-						v.MonDKPScaleSize = nil
-					end
-				elseif type(v) == "table" then
-					migrateDefaultsRecursive(v)
-				end
-			end
-		end
-		migrateDefaultsRecursive(CommDKP_DB)
-
-		-- show completion popup
-		self:MonolithMigrationGenericPopup(L["MIGRATIONCOMPLETED"])
-	end)
-
-	return true
+	-- show completion popup
+	self:MonolithMigrationGenericPopup(L["MIGRATIONCOMPLETED"])
 end
 
 function CommDKP:MonolithMigrationLegacyDetected(migration)
-	L["MIGRATIONDETECTED"] = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables and settings to CommunityDKP?"
-
 	StaticPopupDialogs["MONOLITH_MIGRATION_DETECTED"] = {
 		text = L["MIGRATIONDETECTED"],
 		button1 = L["YES"],
@@ -1039,9 +1130,22 @@ function CommDKP:MonolithMigrationLegacyDetected(migration)
 	StaticPopup_Show("MONOLITH_MIGRATION_DETECTED")
 end
 
-function CommDKP:MonolithMigrationConfirmationPopup(migration)
-	L["MIGRATIONCONFIRM"] = "This will overwrite your existing CommunityDKP tables and settings.|n|nDo you want to continue?"
+function CommDKP:MonolithMigrationAsNewTeam(migration)
+	StaticPopupDialogs["MONOLITH_MIGRATION_TEAM"] = {
+		text = L["MIGRATIONTEAM"],
+		button1 = L["YES"],
+		button2 = L["NO"],
+		OnAccept = migration,
+		OnCancel = function() self:MonolithMigrationCancelationPopup() end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+		preferredIndex = 3,
+	}
+	StaticPopup_Show("MONOLITH_MIGRATION_TEAM")
+end
 
+function CommDKP:MonolithMigrationConfirmationPopup(migration)
 	StaticPopupDialogs["MONOLITH_MIGRATION_CONFIRMATION"] = {
 		text = "|CFFFF0000"..L["WARNING"].."|r: "..L["MIGRATIONCONFIRM"],
 		button1 = L["YES"],

@@ -1,6 +1,7 @@
 local _, core = ...;
 local _G = _G;
 local CommDKP = core.CommDKP;
+local CommDKPApi = core.CommDKPApi;
 local L = core.L;
 
 local Bids_Submitted = {};
@@ -16,6 +17,14 @@ local mode;
 local events = CreateFrame("Frame", "BiddingEventsFrame");
 local menuFrame = CreateFrame("Frame", "CommDKPBidWindowMenuFrame", UIParent, "UIDropDownMenuTemplate")
 local hookedSlots = {}
+
+function CommDKPApi:SetPriceListApi(api)
+  if api.GetItemPrice ~= nil then
+    CommDKPApi.pricelist = api
+    return true
+  end
+  return false
+end
 
 local function UpdateBidWindow()
   core.BiddingWindow.item:SetText(CurrItemForBid)
@@ -76,10 +85,15 @@ local function Roll_OnEvent(self, event, arg1, ...)
 
       if not CommDKP:Table_Search(Bids_Submitted, name) and search then
         if core.DB.modes.AnnounceBid and ((Bids_Submitted[1] and Bids_Submitted[1].roll < roll) or not Bids_Submitted[1]) then
+          local msgTarget = "RAID";
+          if core.DB.modes.AnnounceRaidWarning then
+            msgTarget = "RAID_WARNING";
+          end
+
           if not core.DB.modes.AnnounceBidName then
-            SendChatMessage(L["NEWHIGHROLL"].." "..roll.." ("..low.."-"..high..")", "RAID")
+            SendChatMessage(L["NEWHIGHROLL"].." "..roll.." ("..low.."-"..high..")", msgTarget)
           else
-            SendChatMessage(L["NEWHIGHROLLER"].." "..name..": "..roll.." ("..low.."-"..high..")", "RAID")
+            SendChatMessage(L["NEWHIGHROLLER"].." "..name..": "..roll.." ("..low.."-"..high..")", msgTarget)
           end
         end
         table.insert(Bids_Submitted, {player=name, roll=roll, range=" ("..low.."-"..high..")"})
@@ -171,10 +185,15 @@ function CommDKP_CHAT_MSG_WHISPER(text, ...)
               end
               if mode == "Minimum Bid Values" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Minimum Bid") then
                 if core.DB.modes.AnnounceBid and ((Bids_Submitted[1] and Bids_Submitted[1].bid < cmd) or not Bids_Submitted[1]) then
+                  local msgTarget = "RAID";
+                  if core.DB.modes.AnnounceRaidWarning then
+                    msgTarget = "RAID_WARNING";
+                  end
+
                   if not core.DB.modes.AnnounceBidName then
-                    SendChatMessage(L["NEWHIGHBID"].." "..cmd.." DKP", "RAID")
+                    SendChatMessage(L["NEWHIGHBID"].." "..cmd.." DKP", msgTarget)
                   else
-                    SendChatMessage(L["NEWHIGHBIDDER"].." "..name.." ("..cmd.." DKP)", "RAID")
+                    SendChatMessage(L["NEWHIGHBIDDER"].." "..name.." ("..cmd.." DKP)", msgTarget)
                   end
                 end
                 if core.DB.modes.DeclineLowerBids and Bids_Submitted[1] and cmd <= Bids_Submitted[1].bid then   -- declines bids lower than highest bid
@@ -196,10 +215,15 @@ function CommDKP_CHAT_MSG_WHISPER(text, ...)
                 end
               elseif mode == "Static Item Values" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Static") then
                 if core.DB.modes.AnnounceBid and ((Bids_Submitted[1] and Bids_Submitted[1].dkp < dkp) or not Bids_Submitted[1]) then
+                  local msgTarget = "RAID";
+                  if core.DB.modes.AnnounceRaidWarning then
+                    msgTarget = "RAID_WARNING";
+                  end
+
                   if not core.DB.modes.AnnounceBidName then
-                    SendChatMessage(L["NEWHIGHBID"].." "..dkp.." DKP", "RAID")
+                    SendChatMessage(L["NEWHIGHBID"].." "..dkp.." DKP", msgTarget)
                   else
-                    SendChatMessage(L["NEWHIGHBIDDER"].." "..name.." ("..dkp.." DKP)", "RAID")
+                    SendChatMessage(L["NEWHIGHBIDDER"].." "..name.." ("..dkp.." DKP)", msgTarget)
                   end
                 end
                 table.insert(Bids_Submitted, {player=name, dkp=dkp})
@@ -324,196 +348,216 @@ function CommDKP:WhisperAvailableDKP(name, cmd)
   return;
 end
 
-function CommDKP:GetMinBid(itemLink)
+function CommDKP:GetItemPrice(itemLink)
+  if CommDKPApi.pricelist == nil then
+    return nil
+  end
+
+  return CommDKPApi.pricelist:GetItemPrice(itemLink)
+end
+
+function CommDKP:GetItemLocBid(from, itemLink)
   local _,_,_,_,_,_,_,_,loc = GetItemInfo(itemLink);
 
   if loc == "INVTYPE_HEAD" then
-    return core.DB.MinBidBySlot.Head
+    return from.Head
   elseif loc == "INVTYPE_NECK" then
-    return core.DB.MinBidBySlot.Neck
+    return from.Neck
   elseif loc == "INVTYPE_SHOULDER" then
-    return core.DB.MinBidBySlot.Shoulders
+    return from.Shoulders
   elseif loc == "INVTYPE_CLOAK" then
-    return core.DB.MinBidBySlot.Cloak
+    return from.Cloak
   elseif loc == "INVTYPE_CHEST" or loc == "INVTYPE_ROBE" then
-    return core.DB.MinBidBySlot.Chest
+    return from.Chest
   elseif loc == "INVTYPE_WRIST" then
-    return core.DB.MinBidBySlot.Bracers
+    return from.Bracers
   elseif loc == "INVTYPE_HAND" then
-    return core.DB.MinBidBySlot.Hands
+    return from.Hands
   elseif loc == "INVTYPE_WAIST" then
-    return core.DB.MinBidBySlot.Belt
+    return from.Belt
   elseif loc == "INVTYPE_LEGS" then
-    return core.DB.MinBidBySlot.Legs
+    return from.Legs
   elseif loc == "INVTYPE_FEET" then
-    return core.DB.MinBidBySlot.Boots
+    return from.Boots
   elseif loc == "INVTYPE_FINGER" then
-    return core.DB.MinBidBySlot.Ring
+    return from.Ring
   elseif loc == "INVTYPE_TRINKET" then
-    return core.DB.MinBidBySlot.Trinket
+    return from.Trinket
   elseif loc == "INVTYPE_WEAPON" or loc == "INVTYPE_WEAPONMAINHAND" or loc == "INVTYPE_WEAPONOFFHAND" then
-    return core.DB.MinBidBySlot.OneHanded
+    return from.OneHanded
   elseif loc == "INVTYPE_2HWEAPON" then
-    return core.DB.MinBidBySlot.TwoHanded
+    return from.TwoHanded
   elseif loc == "INVTYPE_HOLDABLE" or loc == "INVTYPE_SHIELD" then
-    return core.DB.MinBidBySlot.OffHand
+    return from.OffHand
   elseif loc == "INVTYPE_RANGED" or loc == "INVTYPE_THROWN" or loc == "INVTYPE_RANGEDRIGHT" or loc == "INVTYPE_RELIC" then
-    return core.DB.MinBidBySlot.Range
+    return from.Range
   else
-    return core.DB.MinBidBySlot.Other
+    return from.Other
   end
+end
+
+function CommDKP:GetMinBid(itemLink)
+  local itemPrice = CommDKP:GetItemPrice(itemLink);
+  if itemPrice then
+    return itemPrice.minBid
+  end
+
+  return CommDKP:GetItemLocBid(core.DB.MinBidBySlot, itemLink)
 end
 
 function CommDKP:GetMaxBid(itemLink)
-  local _,_,_,_,_,_,_,_,loc = GetItemInfo(itemLink);
-
-  if loc == "INVTYPE_HEAD" then
-    return core.DB.MaxBidBySlot.Head
-  elseif loc == "INVTYPE_NECK" then
-    return core.DB.MaxBidBySlot.Neck
-  elseif loc == "INVTYPE_SHOULDER" then
-    return core.DB.MaxBidBySlot.Shoulders
-  elseif loc == "INVTYPE_CLOAK" then
-    return core.DB.MaxBidBySlot.Cloak
-  elseif loc == "INVTYPE_CHEST" or loc == "INVTYPE_ROBE" then
-    return core.DB.MaxBidBySlot.Chest
-  elseif loc == "INVTYPE_WRIST" then
-    return core.DB.MaxBidBySlot.Bracers
-  elseif loc == "INVTYPE_HAND" then
-    return core.DB.MaxBidBySlot.Hands
-  elseif loc == "INVTYPE_WAIST" then
-    return core.DB.MaxBidBySlot.Belt
-  elseif loc == "INVTYPE_LEGS" then
-    return core.DB.MaxBidBySlot.Legs
-  elseif loc == "INVTYPE_FEET" then
-    return core.DB.MaxBidBySlot.Boots
-  elseif loc == "INVTYPE_FINGER" then
-    return core.DB.MaxBidBySlot.Ring
-  elseif loc == "INVTYPE_TRINKET" then
-    return core.DB.MaxBidBySlot.Trinket
-  elseif loc == "INVTYPE_WEAPON" or loc == "INVTYPE_WEAPONMAINHAND" or loc == "INVTYPE_WEAPONOFFHAND" then
-    return core.DB.MaxBidBySlot.OneHanded
-  elseif loc == "INVTYPE_2HWEAPON" then
-    return core.DB.MaxBidBySlot.TwoHanded
-  elseif loc == "INVTYPE_HOLDABLE" or loc == "INVTYPE_SHIELD" then
-    return core.DB.MaxBidBySlot.OffHand
-  elseif loc == "INVTYPE_RANGED" or loc == "INVTYPE_THROWN" or loc == "INVTYPE_RANGEDRIGHT" or loc == "INVTYPE_RELIC" then
-    return core.DB.MaxBidBySlot.Range
-  else
-    return core.DB.MaxBidBySlot.Other
+  local itemPrice = CommDKP:GetItemPrice(itemLink);
+  if itemPrice then
+    return itemPrice.maxBid
   end
+
+  return CommDKP:GetItemLocBid(core.DB.MaxBidBySlot, itemLink)
 end
 
 function CommDKP:ToggleBidWindow(loot, lootIcon, itemName)
-  local minBid;
+  local minBid, maxBid, itemID;
+
   mode = core.DB.modes.mode;
 
   if core.IsOfficer then
+    if core.BiddingWindow == nil then
+      print("Bidding Window is Nil")
+    end
+
     core.BiddingWindow = core.BiddingWindow or CommDKP:CreateBidWindow();
 
-     if core.DB.bidpos then
+    if core.DB.bidpos then
        core.BiddingWindow:ClearAllPoints()
       local a = core.DB.bidpos
       core.BiddingWindow:SetPoint(a.point, a.relativeTo, a.relativePoint, a.x, a.y)
     end
 
     core.BiddingWindow:SetShown(true)
-     core.BiddingWindow:SetFrameLevel(10)
+    core.BiddingWindow:SetFrameLevel(10)
 
-     if core.DB.modes.mode == "Zero Sum" then
-       core.ZeroSumBank = core.ZeroSumBank or CommDKP:ZeroSumBank_Create()
-       core.ZeroSumBank:SetShown(true)
-       core.ZeroSumBank:SetFrameLevel(10)
+    if core.DB.modes.mode == "Zero Sum" then
+      core.ZeroSumBank = core.ZeroSumBank or CommDKP:ZeroSumBank_Create()
+      core.ZeroSumBank:SetShown(true)
+      core.ZeroSumBank:SetFrameLevel(10)
 
-       CommDKP:ZeroSumBank_Update();
+      CommDKP:ZeroSumBank_Update();
     end
 
     if core.ModesWindow then core.ModesWindow:SetFrameLevel(6) end
     if CommDKP.UIConfig then CommDKP.UIConfig:SetFrameLevel(2) end
 
-     if loot then
+    if loot then
+      _, _, _, _, itemID, _, _, _, _, _, _, _, _, _ = string.find(loot,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")
        Bids_Submitted = {}
-       if core.DB.modes.BroadcastBids then
+      if core.DB.modes.BroadcastBids then
         CommDKP.Sync:SendData("CommDKPBidShare", Bids_Submitted)
       end
 
       CurrItemForBid = loot;
-       CurrItemIcon = lootIcon
-       CurZone = GetRealZoneText()
+      CurrItemIcon = lootIcon
+      CurZone = GetRealZoneText()
 
-      -- Max bid values
+      
       if mode == "Minimum Bid Values" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Minimum Bid") then
+        
+        -- Max bid values
         local search_max = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MaxBids, true), itemName)
         if search_max then
           maxBid = CommDKP:GetTable(CommDKP_MaxBids, true)[search_max[1][1]].maxbid
-          core.BiddingWindow.CustomMaxBid:Show();
-          core.BiddingWindow.CustomMaxBid:SetChecked(true)
-          core.BiddingWindow.CustomMaxBid:SetScript("OnClick", function(self)
-            if self:GetChecked() == true then
-              core.BiddingWindow.maxBid:SetText(CommDKP_round(maxBid, core.DB.modes.rounding))
-            else
-              core.BiddingWindow.maxBid:SetText(CommDKP:GetMaxBid(CurrItemForBid))
-            end
-          end)
         else
           maxBid = CommDKP:GetMaxBid(CurrItemForBid)
-          core.BiddingWindow.CustomMaxBid:Hide();
+        end
+        
+        -- search min bid value(item cost)
+        local search_min = CommDKP:GetTable(CommDKP_MinBids, true)[itemID];
+        if search_min then
+          minBid = CommDKP:GetTable(CommDKP_MinBids, true)[itemID].minbid
+        else
+          minBid = CommDKP:GetMinBid(CurrItemForBid);
+        end
+      elseif mode == "Static Item Values" or mode == "Roll Based Bidding" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Static") then
+        
+        -- search min bid value(item cost)
+        local search_min = CommDKP:GetTable(CommDKP_MinBids, true)[itemID];
+        if search_min then
+          minBid = CommDKP:GetTable(CommDKP_MinBids, true)[itemID].minbid
+        else
+          minBid = CommDKP:GetMinBid(CurrItemForBid);
+        end
+      else
+        minBid = CommDKP:GetMinBid(CurrItemForBid);
+        maxBid = CommDKP:GetMaxBid(CurrItemForBid);
+      end
+      
+      if mode == "Minimum Bid Values" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Minimum Bid") then
+        core.BiddingWindow.CustomMinBid:Show();
+        core.BiddingWindow.CustomMinBid:SetChecked(core.DB.defaults.CustomMinBid)
+        core.BiddingWindow.CustomMinBid:SetScript("OnClick", function(self)
+          if self:GetChecked() == true then
+            core.BiddingWindow.minBid:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
+          else
+            core.BiddingWindow.minBid:SetText(CommDKP:GetMinBid(CurrItemForBid))
+          end
+          core.DB.defaults.CustomMinBid = self:GetChecked();
+        end)
+
+        core.BiddingWindow.CustomMaxBid:Show();
+        core.BiddingWindow.CustomMaxBid:SetChecked(core.DB.defaults.CustomMaxBid)
+        core.BiddingWindow.CustomMaxBid:SetScript("OnClick", function(self)
+          if self:GetChecked() == true then
+            core.BiddingWindow.maxBid:SetText(CommDKP_round(maxBid, core.DB.modes.rounding))
+          else
+            local behavior = core.DB.modes.MaxBehavior
+            local dkpValue = 0;
+
+            if behavior == "Max DKP" then
+                dkpValue = "MAX";
+            else
+              dkpValue = CommDKP_round(CommDKP:GetMaxBid(CurrItemForBid), core.DB.modes.rounding);
+            end
+            core.BiddingWindow.maxBid:SetText(dkpValue);
+          end
+          core.DB.defaults.CustomMaxBid = self:GetChecked();
+        end)
+      elseif mode == "Static Item Values" or mode == "Roll Based Bidding" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Static") then
+        core.BiddingWindow.CustomMinBid:Show();
+        core.BiddingWindow.CustomMinBid:SetChecked(core.DB.defaults.CustomMinBid)
+        core.BiddingWindow.CustomMinBid:SetScript("OnClick", function(self)
+          if self:GetChecked() == true then
+            core.BiddingWindow.cost:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
+          else
+            core.BiddingWindow.cost:SetText(CommDKP:GetMinBid(CurrItemForBid))
+          end
+          core.DB.defaults.CustomMinBid = not core.DB.defaults.CustomMinBid;
+        end)
+      end
+
+      if mode == "Minimum Bid Values" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Minimum Bid") then
+        core.BiddingWindow.minBid:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
+
+        local behavior = core.DB.modes.MaxBehavior
+        local dkpValue = 0;
+
+        if not core.DB.defaults.CustomMaxBid then
+          if behavior == "Max DKP" then
+              dkpValue = "MAX";
+          else
+            dkpValue = CommDKP_round(maxBid, core.DB.modes.rounding);
+          end
+          core.BiddingWindow.maxBid:SetText(dkpValue);
+        else
+          core.BiddingWindow.maxBid:SetText(CommDKP_round(maxBid, core.DB.modes.rounding))
         end
       end
-      -- search min bid value(item cost)
-      local search_min = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MinBids, true), itemName)
 
-      if search_min then
-        minBid = CommDKP:GetTable(CommDKP_MinBids, true)[search_min[1][1]].minbid
-        if mode == "Minimum Bid Values" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Minimum Bid") then
-          core.BiddingWindow.CustomMinBid:Show();
-          core.BiddingWindow.CustomMinBid:SetChecked(true)
-          core.BiddingWindow.CustomMinBid:SetScript("OnClick", function(self)
-            if self:GetChecked() == true then
-              core.BiddingWindow.minBid:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
-            else
-              core.BiddingWindow.minBid:SetText(CommDKP:GetMinBid(CurrItemForBid))
-            end
-          end)
-
-          core.BiddingWindow.CustomMaxBid:Show();
-          core.BiddingWindow.CustomMaxBid:SetChecked(true)
-          core.BiddingWindow.CustomMaxBid:SetScript("OnClick", function(self)
-            if self:GetChecked() == true then
-              core.BiddingWindow.maxBid:SetText(CommDKP_round(maxBid, core.DB.modes.rounding))
-            else
-              core.BiddingWindow.maxBid:SetText(CommDKP:GetMaxBid(CurrItemForBid))
-            end
-          end)
-        elseif mode == "Static Item Values" or mode == "Roll Based Bidding" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Static") then
-          core.BiddingWindow.CustomMinBid:Show();
-          core.BiddingWindow.CustomMinBid:SetChecked(true)
-          core.BiddingWindow.CustomMinBid:SetScript("OnClick", function(self)
-            if self:GetChecked() == true then
-              core.BiddingWindow.cost:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
-            else
-              core.BiddingWindow.cost:SetText(CommDKP:GetMinBid(CurrItemForBid))
-            end
-          end)
-        end
-       else
-        minBid = CommDKP:GetMinBid(CurrItemForBid)
-        core.BiddingWindow.CustomMinBid:Hide();
-       end
-
-       if mode == "Minimum Bid Values" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Minimum Bid") then
-        core.BiddingWindow.minBid:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
-        core.BiddingWindow.maxBid:SetText(CommDKP_round(maxBid, core.DB.modes.rounding))
-       end
-
-       core.BiddingWindow.cost:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
-       core.BiddingWindow.itemName:SetText(itemName)
-       core.BiddingWindow.bidTimer:SetText(core.DB.DKPBonus.BidTimer)
-       core.BiddingWindow.boss:SetText(core.LastKilledBoss)
-       UpdateBidWindow()
-       core.BiddingWindow.ItemTooltipButton:SetSize(core.BiddingWindow.itemIcon:GetWidth() + core.BiddingWindow.item:GetStringWidth() + 10, core.BiddingWindow.item:GetHeight());
-       core.BiddingWindow.ItemTooltipButton:SetScript("OnEnter", function(self)
-         ActionButton_ShowOverlayGlow(core.BiddingWindow.ItemIconButton)
+      core.BiddingWindow.cost:SetText(CommDKP_round(minBid, core.DB.modes.rounding))
+      core.BiddingWindow.itemName:SetText(itemName)
+      core.BiddingWindow.bidTimer:SetText(core.DB.DKPBonus.BidTimer)
+      core.BiddingWindow.boss:SetText(core.LastKilledBoss)
+      UpdateBidWindow()
+      core.BiddingWindow.ItemTooltipButton:SetSize(core.BiddingWindow.itemIcon:GetWidth() + core.BiddingWindow.item:GetStringWidth() + 10, core.BiddingWindow.item:GetHeight());
+      core.BiddingWindow.ItemTooltipButton:SetScript("OnEnter", function(self)
+        ActionButton_ShowOverlayGlow(core.BiddingWindow.ItemIconButton)
         GameTooltip:SetOwner(self:GetParent(), "ANCHOR_BOTTOMRIGHT", 0, 500);
         GameTooltip:SetHyperlink(CurrItemForBid)
       end)
@@ -521,11 +565,11 @@ function CommDKP:ToggleBidWindow(loot, lootIcon, itemName)
         ActionButton_HideOverlayGlow(core.BiddingWindow.ItemIconButton)
         GameTooltip:Hide()
       end)
-     else
-       UpdateBidWindow()
-     end
+    else
+      UpdateBidWindow()
+    end
 
-     CommDKP:BidScrollFrame_Update()
+    CommDKP:BidScrollFrame_Update()
   else
     CommDKP:Print(L["NOPERMISSION"])
   end
@@ -550,27 +594,28 @@ local function StartBidding()
     if core.DB.defaults.AutoOpenBid then  -- toggles bid window if option is set to
       CommDKP:BidInterface_Toggle()
     end
+    local _, _, Color, Ltype, itemID, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name = string.find(CurrItemForBid,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")
 
-    local search_min = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MinBids, true), core.BiddingWindow.itemName:GetText(), "item")
+    local search_min = CommDKP:GetTable(CommDKP_MinBids, true)[itemID];
     local val_min = CommDKP:GetMinBid(CurrItemForBid);
     local search_max = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MaxBids, true), core.BiddingWindow.itemName:GetText(), "item")
     local val_max = CommDKP:GetMaxBid(CurrItemForBid);
 
     -- Min
     if not search_min and core.BiddingWindow.minBid:GetNumber() ~= tonumber(val_min) then
-      tinsert(CommDKP:GetTable(CommDKP_MinBids, true), {item=core.BiddingWindow.itemName:GetText(), minbid=core.BiddingWindow.minBid:GetNumber()})
+      CommDKP:GetTable(CommDKP_MinBids, true)[itemID] = {item=core.BiddingWindow.itemName:GetText(), minbid=core.BiddingWindow.minBid:GetNumber(), link=CurrItemForBid};
       core.BiddingWindow.CustomMinBid:SetShown(true);
-      core.BiddingWindow.CustomMinBid:SetChecked(true);
+      core.BiddingWindow.CustomMinBid:SetChecked(core.DB.defaults.CustomMinBid);
     elseif search_min and core.BiddingWindow.minBid:GetNumber() ~= tonumber(val_min) and core.BiddingWindow.CustomMinBid:GetChecked() == true then
-      if CommDKP:GetTable(CommDKP_MinBids, true)[search_min[1][1]].minbid ~= core.BiddingWindow.minBid:GetNumber() then
-        CommDKP:GetTable(CommDKP_MinBids, true)[search_min[1][1]].minbid = core.BiddingWindow.minBid:GetNumber();
+      if CommDKP:GetTable(CommDKP_MinBids, true)[itemID].minbid ~= core.BiddingWindow.minBid:GetNumber() then
+        CommDKP:GetTable(CommDKP_MinBids, true)[itemID].minbid = core.BiddingWindow.minBid:GetNumber();
         core.BiddingWindow.CustomMinBid:SetShown(true);
-        core.BiddingWindow.CustomMinBid:SetChecked(true);
+        core.BiddingWindow.CustomMinBid:SetChecked(core.DB.defaults.CustomMinBid);
       end
     end
 
     if search_min and core.BiddingWindow.CustomMinBid:GetChecked() == false then
-      table.remove(CommDKP:GetTable(CommDKP_MinBids, true), search_min[1][1])
+      CommDKP:GetTable(CommDKP_MinBids, true)[itemID] = {}
       core.BiddingWindow.CustomMinBid:SetShown(false);
     end
 
@@ -578,12 +623,12 @@ local function StartBidding()
     if not search_max and core.BiddingWindow.maxBid:GetNumber() ~= tonumber(val_max) then
       tinsert(CommDKP:GetTable(CommDKP_MaxBids, true), {item=core.BiddingWindow.itemName:GetText(), maxbid=core.BiddingWindow.maxBid:GetNumber()})
       core.BiddingWindow.CustomMaxBid:SetShown(true);
-      core.BiddingWindow.CustomMaxBid:SetChecked(true);
+      core.BiddingWindow.CustomMaxBid:SetChecked(core.DB.defaults.CustomMaxBid);
     elseif search_max and core.BiddingWindow.maxBid:GetNumber() ~= tonumber(val_max) and core.BiddingWindow.CustomMaxBid:GetChecked() == true then
       if CommDKP:GetTable(CommDKP_MaxBids, true)[search_max[1][1]].maxbid ~= core.BiddingWindow.maxBid:GetNumber() then
         CommDKP:GetTable(CommDKP_MaxBids, true)[search_max[1][1]].maxbid = core.BiddingWindow.maxBid:GetNumber();
         core.BiddingWindow.CustomMaxBid:SetShown(true);
-        core.BiddingWindow.CustomMaxBid:SetChecked(true);
+        core.BiddingWindow.CustomMaxBid:SetChecked(core.DB.defaults.CustomMaxBid);
       end
     end
 
@@ -657,9 +702,11 @@ local function ToggleTimerBtn(self)
     timerToggle = 1;
     self:SetText(L["ENDBIDDING"])
     StartBidding()
+    core.BidAuctioneer = true;
   else
     timerToggle = 0;
     core.BidInProgress = false;
+    core.BidAuctioneer = false;
     self:SetText(L["STARTBIDDING"])
     SendChatMessage(L["BIDDINGCLOSED"], "RAID_WARNING")
     events:UnregisterEvent("CHAT_MSG_SYSTEM")
@@ -737,86 +784,6 @@ function CommDKP:BroadcastStopBidTimer()
   CommDKP.BidTimer:SetScript("OnUpdate", nil)
   CommDKP.BidTimer:Hide()
   CommDKP.Sync:SendData("CommDKPCommand", "StopBidTimer")
-end
-
-function CommDKP_Register_ShiftClickLootWindowHook()      -- hook function into LootFrame window. All slots on ElvUI. But only first 4 in default UI.
-  local num = GetNumLootItems();
-
-  if getglobal("ElvLootSlot1") then       -- fixes hook for ElvUI loot frame
-    for i = 1, num do
-      local searchHook = CommDKP:Table_Search(hookedSlots, i)  -- blocks repeated hooking
-
-      if not searchHook then
-        local lootSlot = getglobal("ElvLootSlot"..i)
-        if lootSlot then
-          lootSlot:HookScript("OnClick", function()
-                if ( IsShiftKeyDown() and IsAltKeyDown() ) then
-                  local pass, err = pcall(function()
-                    lootIcon, itemName, _, _, _ = GetLootSlotInfo(i)
-                    itemLink = GetLootSlotLink(i)
-                      CommDKP:ToggleBidWindow(itemLink, lootIcon, itemName)
-                  end)
-
-              if not pass then
-                CommDKP:Print(err)
-                core.BiddingWindow:SetShown(false)
-                StaticPopupDialogs["SUGGEST_RELOAD"] = {
-                  text = "|CFFFF0000"..L["WARNING"].."|r: "..L["MUSTRELOADUI"],
-                  button1 = L["YES"],
-                  button2 = L["NO"],
-                  OnAccept = function()
-                    ReloadUI();
-                  end,
-                  timeout = 0,
-                  whileDead = true,
-                  hideOnEscape = true,
-                  preferredIndex = 3,
-                }
-                StaticPopup_Show ("SUGGEST_RELOAD")
-              end
-            end
-          end)
-          table.insert(hookedSlots, i)
-        end
-      end
-    end
-  else
-    if num > 4 then num = 4 end
-
-    for i = 1, num do
-      local searchHook = CommDKP:Table_Search(hookedSlots, i)  -- blocks repeated hooking
-
-      if not searchHook then
-        getglobal("LootButton"..i):HookScript("OnClick", function()
-              if ( IsShiftKeyDown() and IsAltKeyDown() ) then
-                local pass, err = pcall(function()
-                  lootIcon, itemName, _, _, _ = GetLootSlotInfo(i)
-                  itemLink = GetLootSlotLink(i)
-                    CommDKP:ToggleBidWindow(itemLink, lootIcon, itemName)
-                end)
-
-            if not pass then
-              core.BiddingWindow:SetShown(false)
-              StaticPopupDialogs["SUGGEST_RELOAD"] = {
-                text = "|CFFFF0000"..L["WARNING"].."|r: "..L["MUSTRELOADUI"],
-                button1 = L["YES"],
-                button2 = L["NO"],
-                OnAccept = function()
-                  ReloadUI();
-                end,
-                timeout = 0,
-                whileDead = true,
-                hideOnEscape = true,
-                preferredIndex = 3,
-              }
-              StaticPopup_Show ("SUGGEST_RELOAD")
-            end
-              end
-        end)
-        table.insert(hookedSlots, i)
-      end
-    end
-  end
 end
 
 function CommDKP:StartBidTimer(seconds, title, itemIcon)
@@ -1145,6 +1112,7 @@ local function SortBidTable()             -- sorts the Loot History Table by dat
 end
 
 function CommDKP:BidScrollFrame_Update()
+  print("Updating bidscroll");
   local numOptions = #Bids_Submitted;
   local index, row
     local offset = FauxScrollFrame_GetOffset(core.BiddingWindow.bidTable) or 0
@@ -1449,7 +1417,7 @@ function CommDKP:CreateBidWindow()
       end)
 
     f.CustomMaxBid = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate");
-    f.CustomMaxBid:SetChecked(true)
+    f.CustomMaxBid:SetChecked(core.DB.defaults.CustomMaxBid)
     f.CustomMaxBid:SetScale(0.6);
     f.CustomMaxBid.text:SetText("  |cff5151de"..L["CUSTOM"].."|r");
     f.CustomMaxBid.text:SetScale(1.5);

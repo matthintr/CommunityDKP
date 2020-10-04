@@ -48,6 +48,12 @@ end
 
 function CommDKP:ProcessDisenchant(loot)
 	local itemName,itemLink,_,_,_,_,_,_,_,itemIcon = GetItemInfo(loot)
+	local _, _, Color, Ltype, itemID, Enchant, Gem1, Gem2, Gem3, Gem4, Suffix, Unique, LinkLvl, Name = string.find(loot,"|?c?f?f?(%x*)|?H?([^:]*):?(%d+):?(%d*):?(%d*):?(%d*):?(%d*):?(%d*):?(%-?%d*):?(%-?%d*):?(%d*):?(%d*):?(%-?%d*)|?h?%[?([^%[%]]*)%]?|?h?|?r?")
+
+	if itemName == nil and Name ~= nil then
+		itemName = Name;
+	end
+
 	local mode = core.DB.modes.mode;
 
 	if core.BiddingWindow and core.BiddingWindow:IsShown() then  -- can only process through bidding process
@@ -63,20 +69,19 @@ function CommDKP:ProcessDisenchant(loot)
 		CommDKP:BroadcastStopBidTimer()
 
 		
-		local search = CommDKP:Table_Search(CommDKP:GetTable(CommDKP_MinBids, true), itemName);
-		local cost = 0;
-		local newItem = {item=itemName, minbid=cost, link=itemLink, icon=itemIcon, disenchant=0};
+		local search = CommDKP:GetTable(CommDKP_MinBids, true)[itemID];
+		local cost = CommDKP_round(core.BiddingWindow.cost:GetNumber(), core.DB.modes.rounding);
+		local minBid = cost;
+		local newItem = {item=itemName, minbid=minBid, link=itemLink, icon=itemIcon, disenchants=0, lastbid=0, itemID=itemID};
 		if search then
-			newItem = CommDKP:GetTable(CommDKP_MinBids, true)[search[1][1]];
+			newItem = CommDKP:GetTable(CommDKP_MinBids, true)[itemID];
 		end
 		local numOfDisenchants = newItem["disenchants"] or 0;
 		local updatedDisenchants = numOfDisenchants + 1;
 		
-		
+		--Figure out adjusted cost or minValue
 		if mode == "Static Item Values" or mode == "Roll Based Bidding" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Static") then
 			
-			cost = core.BiddingWindow.cost:GetNumber();
-
 			SendChatMessage("No bids for ".." "..itemLink.." for "..cost.." "..L["DKP"].." and will be disenchanted. This will be disenchant number "..updatedDisenchants, "RAID_WARNING");
 			
 			if core.DB.defaults.DecreaseDisenchantValue then
@@ -95,26 +100,33 @@ function CommDKP:ProcessDisenchant(loot)
 				end
 			end
 
-			newItem.cost = cost;
+			newItem.lastbid = cost;
 			newItem.disenchants = updatedDisenchants;
 
 		else
+			minBid = CommDKP_round(core.BiddingWindow.minBid:GetNumber(), core.DB.modes.rounding);
+			newItem.minbid = minBid;
 			SendChatMessage("No bids for ".." "..itemLink.." and will be disenchanted. This will be disenchant number "..updatedDisenchants, "RAID_WARNING");
 		end
 
-		newItem["disenchants"] = updatedDisenchants;
+		newItem.disenchants = updatedDisenchants;
 
 		if not search then
-			tinsert(CommDKP:GetTable(CommDKP_MinBids, true), newItem)
+			CommDKP:GetTable(CommDKP_MinBids, true)[itemID] = newItem;
 			core.BiddingWindow.CustomMinBid:SetShown(true);
-			core.BiddingWindow.CustomMinBid:SetChecked(true);
+			core.BiddingWindow.CustomMinBid:SetChecked(core.DB.defaults.CustomMinBid);
 		else
+			if mode == "Static Item Values" or mode == "Roll Based Bidding" or (mode == "Zero Sum" and core.DB.modes.ZeroSumBidType == "Static") then
+				CommDKP:GetTable(CommDKP_MinBids, true)[itemID].minbid = newItem.minbid;
+				CommDKP:GetTable(CommDKP_MinBids, true)[itemID].lastbid = newItem.lastbid;
+			end
 
-			CommDKP:GetTable(CommDKP_MinBids, true)[search[1][1]].minbid = cost;
-			CommDKP:GetTable(CommDKP_MinBids, true)[search[1][1]].link = itemLink;
-			CommDKP:GetTable(CommDKP_MinBids, true)[search[1][1]].icon = itemIcon;
-			CommDKP:GetTable(CommDKP_MinBids, true)[search[1][1]].disenchants = updatedDisenchants;
-			newItem = CommDKP:GetTable(CommDKP_MinBids, true)[search[1][1]];
+			CommDKP:GetTable(CommDKP_MinBids, true)[itemID].link = newItem.link;
+			CommDKP:GetTable(CommDKP_MinBids, true)[itemID].icon = newItem.icon;
+			CommDKP:GetTable(CommDKP_MinBids, true)[itemID].item = newItem.itemName;
+			CommDKP:GetTable(CommDKP_MinBids, true)[itemID].itemID = newItem.itemID;
+			CommDKP:GetTable(CommDKP_MinBids, true)[itemID].disenchants = newItem.disenchants;
+			newItem = CommDKP:GetTable(CommDKP_MinBids, true)[itemID];
 		end
 		
 		CommDKP.Sync:SendData("CommDKPSetPrice", newItem);

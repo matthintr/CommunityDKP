@@ -176,6 +176,10 @@ function CommDKP:SortDKPTable(id, reset)        -- reorganizes core.WorkingTable
 		button = SortButtons[id]
 	end
 
+	if button == nil then
+		return;
+	end
+
 	if reset and reset ~= "Clear" then                         -- reset is useful for check boxes when you don't want it repeatedly reversing the sort
 		button.Ascend = button.Ascend
 	else
@@ -187,6 +191,18 @@ function CommDKP:SortDKPTable(id, reset)        -- reorganizes core.WorkingTable
 		end
 	end
 	table.sort(core.WorkingTable, function(a, b)
+		-- Validate Data and Fix Discrepencies
+		if a[button.Id] == nil then
+			print("[CommunityDKP] Bad DKP Player Record Found: "..a.player)
+			core.RepairWorking = true;
+			return false;
+		end
+		if b[button.Id] == nil then
+			print("[CommunityDKP] Bad DKP Player Record Found: "..b.player)
+			core.RepairWorking = true;
+			return false;
+		end
+
 		if button.Ascend then
 			if id == "dkp" then
 				return a[button.Id] > b[button.Id]
@@ -445,7 +461,7 @@ function CommDKP:CreateMenu()
 
 		CommDKP.UIConfig.TeamViewChangerDropDown = CreateFrame("FRAME", "CommDKPConfigReasonDropDown", CommDKP.UIConfig, "CommunityDKPUIDropDownMenuTemplate")
 		--CommDKP.ConfigTab3.TeamManagementContainer.TeamListDropDown:ClearAllPoints()
-		CommDKP.UIConfig.TeamViewChangerDropDown:SetPoint("BOTTOMLEFT", CommDKP.UIConfig, "BOTTOMLEFT", 340, 13)
+		CommDKP.UIConfig.TeamViewChangerDropDown:SetPoint("BOTTOMLEFT", CommDKP.UIConfig, "BOTTOMLEFT", 340, 4)
 		-- tooltip on mouseOver
 		CommDKP.UIConfig.TeamViewChangerDropDown:SetScript("OnEnter", 
 			function(self) 
@@ -509,6 +525,12 @@ function CommDKP:CreateMenu()
 				CloseDropDownMenus()
 			end
 		end
+
+		CommDKP.UIConfig.TeamViewChangerLabel = CommDKP.UIConfig.TeamViewChangerDropDown:CreateFontString(nil, "OVERLAY")
+		CommDKP.UIConfig.TeamViewChangerLabel:SetPoint("TOPLEFT", CommDKP.UIConfig.TeamViewChangerDropDown, "TOPLEFT", 17, 13);
+		CommDKP.UIConfig.TeamViewChangerLabel:SetFontObject("CommDKPTiny");
+		CommDKP.UIConfig.TeamViewChangerLabel:SetTextColor(1, 1, 1, 0.7);
+		CommDKP.UIConfig.TeamViewChangerLabel:SetText(L["TEAMCURRENTLISTLABEL"]);
 
 	---------------------------------------
 	-- Expand / Collapse Arrow

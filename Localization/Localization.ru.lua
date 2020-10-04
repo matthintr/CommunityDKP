@@ -54,7 +54,7 @@ if GetLocale() == "ruRU" then
     ADDNEGVALUES = "Применять к негативных значениям",
     ADDRAIDMEMBERS = "Добавить участников рейда",
     ADDRAIDMEMBERSCONFIRM = "Вы уверены, что хотите добавить нехватающих участников рейда в таблицу DKP?",
-    ADDRAIDMEMBERSTTDESC = "Добавляет всех участников рейда/группы, которые находятся в гильдии в таблицу DKP.",
+    ADDRAIDMEMBERSTTDESC = "Добавляет всех участников рейда/группы, которые находятся в гильдии в таблицу DKP.", --TODO remove the "in guild" qualifier
     ADDREMDKPTABLEENTRIES = "Добавить/Удалить записи таблицы DKP",
     ADDTARGET = "Добавить цель",
     ADDTARGETTODKPTABLE = "Добавить цель в таблицу DKP",
@@ -85,6 +85,8 @@ if GetLocale() == "ruRU" then
     ANTISNIPE = "Анти-снайп",
     ANTISNIPETTDESC = "Количество секунд, на которое будет продлен таймер аукциона, если была сделана ставка. (Чтобы исключить снайперов последней секунды)",
     ANTISNIPETTWARN = "Установите на 0 если хотите отключить функцию \"анти-снайп\".",
+    ANNOUNCEINRAIDWARNING = "Announce in Raid Warning", -- NEEDS TRANSLATIONS
+    ANNOUNCEINRAIDWARNINGDESC = "If checked, announcements for higgest bid/bidder will be broadcasted via Raid Warning, not Raid chat.", -- NEEDS TRANSLATIONS
     APPDECAYTTDESC = "Сумма DKP, на которое вы хотите уменьшить количество DKP у игроков в виде еженедельного снижения. Это должно быть положительное число. Если \"Только выбранные игроки\" не установлено внизу, это будет применено ко всем игрокам в таблице.",
     APPDECAYTTWARN = "Внимание: Не может быть отменено.",
     APPLYDECAY = "Применить",
@@ -370,6 +372,7 @@ if GetLocale() == "ruRU" then
     INZONEONLY = "Только в пределах зоны",
     INZONEONLYTTDESC = "DKP начисляются только тем игрокам, которые находятся в той же зоне, что и Вы. (Для использования автоматической награды, рейдового таймера и распределения нулевой суммы)",
     ITEM = "Предмет",
+    ITEMS = "Items",
     ITEMCOST = "Цена",
     ITEMCOSTTTDESC = "Количество DKP взимаемых с игрока за предмет.",
     ITEMCOSTTYPES = "Тип цены предмета",
@@ -546,6 +549,7 @@ if GetLocale() == "ruRU" then
     PLAYERSFORREASON = "игроки по причине",
     PLAYERVALIDATE = "Игрок не выбран",
     PLEASEUSENUMS = "Пожалуйста, используйте цифры.",
+    PRICETAB = "Pricing", --TODO
     PLEASEVALIDATE = "Неизвестные записи были удалены. Пожалуйста, обновите данные таблицы. (В выпадающем контекстом меню при нажатии правой кнопкой мыши по таблице DKP)",
     POINTS = "Очки",
     POINTSTTDESC = "Введите количество DKP, которое будет добавлено выбранным игрокам в таблице. Значения по умолчанию можно изменить на вкладке \"Параметры \" ниже.",
@@ -702,6 +706,7 @@ if GetLocale() == "ruRU" then
     TEAMCURRENTLISTDESC2 = "Все закладки и таблицы основываются на выбранном значении из этого списка. Всегда проверяйте, что выбрана нужная команда перед тем, как вносить изменения в DKP или стартовать таймер рейда.",
     TEAMCURRENTLISTDESC3 = "Невозможно изменить выбранную команду из этого меню. Для смены выбранной команды перейдите в основное окно модификации /dkp",
     TEAMLIST = "Список команд",
+    TEAMCURRENTLISTLABEL = "Team selector",
     TEAMLISTDESC = "Список всех команд обозначенных для игрока на сервере/Гильдии. Команды - это меньшие подразделения внутри Гильдии. Удобно для Гильдий с несколькими рейдовыми составами",
     TEAMMANAGEMENTHEADER = "Раздел управления командами Гильдии",
     TEAMSELECT = "Выберите команду",
@@ -803,16 +808,17 @@ if GetLocale() == "ruRU" then
     PASS = "Отказаться",
 
     MIGRATIONDETECTED     = "CommunityDKP обнаружила активную модификацию MonolithDKP.|n|nЖелаете мигрировать нынешнии таблицы и настройки в CommunityDKP?",
+    MIGRATIONTEAM         = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables|nas a NEW TEAM for your current GUILD|nto CommunityDKP?", --TODO TRANSLATE:
     MIGRATIONUNAVAILABLE  = "Пожалуйста отключите MonolithDKP и перезагрузите интерфейс, если желаете использовать CommunityDKP.",
     MIGRATIONCONFIRM      = "Это перезапишет существующие таблицы и настройки CommunityDKP.|n|nЖелаете продолжить?",
     MIGRATIONCANCELED     = "Миграция отменена.|n|nПожалуйста отключите MonolithDKP и перезагрузите интерфейс, если желаете использовать CommunityDKP без нынешних таблиц и настроек.",
     MIGRATIONCOMPLETED    = "Миграция завершена.|n|nПожалуйста отключите MonolithDKP и перезагрузите интерфейс.",
 
-    
-    CHANGELOG1 = "CommunityDKP - Обновление 2",
-    CHANGELOG2 = " - Множественные исправления и улучшения",
-    CHANGELOG3 = " - Помощник при миграции с MonolithDKP",
-    CHANGELOG4 = " - Лучшая синхронизация DKP таблиц при добавлении профилей",
+    --TODO TRANSLATE:
+    CHANGELOG1 = "CommunityDKP - v3.2.3",
+    CHANGELOG2 = " - Upgraded and Refactored the MinBids Table",
+    CHANGELOG3 = " - Fixed a Minbid Save Issue on Disenchant that was removing the Minbid price",
+    CHANGELOG4 = " - Implemented PriceList API Support (contribution by styxhope)",
     CHANGELOG5 = "",
     CHANGELOG6 = "",
     CHANGELOG7 = "",

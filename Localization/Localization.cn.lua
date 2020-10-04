@@ -54,7 +54,7 @@ if GetLocale() == "zhCN" then
     ADDNEGVALUES = "添加到负值",
     ADDRAIDMEMBERS = "添加团队成员",
     ADDRAIDMEMBERSCONFIRM = "您确定要向DKP表添加缺少的RAID成员吗？",
-    ADDRAIDMEMBERSTTDESC = "将公会中的所有团队成员添加到DKP表中。",
+    ADDRAIDMEMBERSTTDESC = "将公会中的所有团队成员添加到DKP表中。", --TODO remove the "in guild" qualifier
     ADDREMDKPTABLEENTRIES = "添加/删除DKP表条目",
     ADDTARGET = "添加目标",
     ADDTARGETTODKPTABLE = "将目标添加到DKP表",
@@ -85,6 +85,8 @@ if GetLocale() == "zhCN" then
     ANTISNIPE = "反狙击",
     ANTISNIPETTDESC = "当出价计时器低于10秒时，如果收到出价，您希望延长出价计时器的秒数。 （以防止最后一秒的狙击）",
     ANTISNIPETTWARN = "设置为0以关闭反窃听。",
+    ANNOUNCEINRAIDWARNING = "Announce in Raid Warning", -- NEEDS TRANSLATIONS
+    ANNOUNCEINRAIDWARNINGDESC = "If checked, announcements for higgest bid/bidder will be broadcasted via Raid Warning, not Raid chat.", -- NEEDS TRANSLATIONS
     APPDECAYTTDESC = "您希望每周减少的DKP条目数量减少了DKP数量。这应该是一个正数。如果未在下面选择“仅选定的玩家”，它将应用于所有条目。",
     APPDECAYTTWARN = "警告：无法撤消。",
     APPLYDECAY = "套用衰减",
@@ -361,6 +363,7 @@ if GetLocale() == "zhCN" then
     INZONEONLY = "在同一区域",
     INZONEONLYTTDESC = "这只会将突袭DKP奖励给与您位于同一区域的玩家。 （用于自动奖励，突袭计时器和零和分配）",
     ITEM = "项目",
+    ITEMS = "Items",
     ITEMCOST = "物品成本",
     ITEMCOSTTTDESC = "DKP向玩家收取物品费用。",
     ITEMCOSTTYPES = "物料成本类型",
@@ -532,6 +535,7 @@ if GetLocale() == "zhCN" then
     PLAYERSFORREASON = "玩家原因",
     PLAYERVALIDATE = "未选择玩",
     PLEASEUSENUMS = "请使用数字。",
+    PRICETAB = "Pricing", --TODO
     PLEASEVALIDATE = "无效的条目已被删除。 请验证您的表格。 （在DKP表的右键单击上下文菜单中）",
     POINTS = "点数",
     POINTSTTDESC = "在DKP表上输入要分配给选定播放器的DKP数量。可以在下面的“选项”标签中更改默认值。",
@@ -688,6 +692,7 @@ if GetLocale() == "zhCN" then
     TEAMCURRENTLISTDESC2 = "All tabs/tables base their data on value coming from this dropdown. Be sure to always check which team you have selected before awarding any DKP or starting the raid timer.",
     TEAMCURRENTLISTDESC3 = "You cannot change the currently selected team from this drop down. To change currently selected team go to /dkp main window",
     TEAMLIST = "List of teams",
+    TEAMCURRENTLISTLABEL = "Team selector",
     TEAMLISTDESC = "List of all the teams defined for current player's realm/guild. Team is a smaller subsection of a guild. Usefull for guilds with more than one raiding groups",
     TEAMMANAGEMENTHEADER = "Guild team management section",
     TEAMSELECT = "Select Team",
@@ -808,21 +813,22 @@ if GetLocale() == "zhCN" then
     PASS                  = "通过",
 
     MIGRATIONDETECTED     = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables and settings to CommunityDKP?", --TODO TRANSLATE:
+    MIGRATIONTEAM         = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables|nas a NEW TEAM for your current GUILD|nto CommunityDKP?", --TODO TRANSLATE:
     MIGRATIONUNAVAILABLE  = "Please disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP.", --TODO TRANSLATE:
     MIGRATIONCONFIRM      = "This will overwrite your existing CommunityDKP tables and settings.|n|nDo you want to continue?", --TODO TRANSLATE:
     MIGRATIONCANCELED     = "Migration canceled.|n|nPlease disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP without using your current tables and settings.", --TODO TRANSLATE:
     MIGRATIONCOMPLETED    = "Migration complete.|n|nPlease disable MonolithDKP and /reload the UI.", --TODO TRANSLATE:
 
     --TODO TRANSLATE:
-    CHANGELOG1 = "CommunityDKP - Update 2",
-    CHANGELOG2 = " - Numerous Bug Fixes and Enhancements",
-    CHANGELOG3 = " - Migration Assitant from MonolithDKP",
-    CHANGELOG4 = " - Better Syncing of DKP Table when Profiles are added",
+    CHANGELOG1 = "CommunityDKP - v3.2.3",
+    CHANGELOG2 = " - Upgraded and Refactored the MinBids Table",
+    CHANGELOG3 = " - Fixed a Minbid Save Issue on Disenchant that was removing the Minbid price",
+    CHANGELOG4 = " - Implemented PriceList API Support (contribution by styxhope)",
     CHANGELOG5 = "",
     CHANGELOG6 = "",
     CHANGELOG7 = "",
     CHANGELOG8 = "CommunityDKP Discord: https://discord.gg/dXXK4vH",
     CHANGELOG9 = "",
     CHANGELOG10 = "",
-        }
+      }
 end

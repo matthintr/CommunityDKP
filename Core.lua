@@ -8,8 +8,11 @@ local _G = _G;
 local L = core.L;
 
 core.CommDKP = {};       -- UI Frames global
+core.CommDKPApi = { __version = 1, pricelist = nil }
 local CommDKP = core.CommDKP;
+local CommDKPApi = core.CommDKPApi;
 
+_G.CommDKPApi = CommDKPApi;
 
 core.faction = UnitFactionGroup("player")
 
@@ -97,9 +100,9 @@ core.EncounterList = {      -- Event IDs must be in the exact same order as core
 }
 
 core.CommDKPUI = {}        -- global storing entire Configuration UI to hide/show UI
-core.MonVersion = "v3.0.2";
-core.BuildNumber = 30002;
-core.ReleaseNumber = 36
+core.MonVersion = "v3.2.3";
+core.BuildNumber = 30203;
+core.ReleaseNumber = 60
 core.defaultTable = "__default";
 core.SemVer = core.MonVersion.."-r"..tostring(core.ReleaseNumber);
 core.UpgradeSchema = false;
@@ -111,6 +114,7 @@ core.ShowState = false;
 core.StandbyActive = false;
 core.currentSort = "dkp"		-- stores current sort selection
 core.BidInProgress = false;   -- flagged true if bidding in progress. else; false.
+core.BidAuctioneer = false;
 core.RaidInProgress = false;
 core.RaidInPause = false;
 core.NumLootItems = 0;        -- updates on LOOT_OPENED event
@@ -126,6 +130,7 @@ core.CenterSort = "class";
 core.OOD = false
 core.RealmName = nil;
 core.FactionName = nil;
+core.RepairWorking = false;
 
 function CommDKP:GetCColors(class)
 	if core.CColors then 
@@ -142,10 +147,14 @@ function CommDKP:GetCColors(class)
 end
 
 function CommDKP_round(number, decimals)
+		number = number or 0;
+		decimals = decimals or 0;
 		return tonumber((("%%.%df"):format(decimals)):format(number))
 end
 
 function CommDKP:ResetPosition()
+	core.DB.bidpos = nil;
+	core.DB.timerpos = nil;
 	CommDKP.UIConfig:ClearAllPoints();
 	CommDKP.UIConfig:SetPoint("CENTER", UIParent, "CENTER", -250, 100);
 	CommDKP.UIConfig:SetSize(550, 590);
@@ -178,10 +187,10 @@ end
 function CommDKP:GetDefaultEntity()
 	local entityProfile = {}
 	entityProfile = {
-		player="",
-		class="None",
-		dkp=0,
-		previous_dkp=0,
+		player = "",
+		class = "None",
+		dkp = 0,
+		previous_dkp = 0,
 		lifetime_gained = 0,
 		lifetime_spent = 0,
 		rank = 20,
@@ -283,10 +292,11 @@ function CommDKP:GetGuildRankGroup(index)                -- returns all members 
 end
 
 function CommDKP:CheckRaidLeader()
-	local tempName,tempRank;
+	local tempName,tempRank, subgroup, level, class, fileName, zone, online, isDead, role, isML, combatRole;
 
 	for i=1, 40 do
-		tempName, tempRank = GetRaidRosterInfo(i)
+		 
+		 tempName, tempRank, subgroup, level, class, fileName, zone, online, isDead, role, isML, combatRole = GetRaidRosterInfo(i);
 
 		if tempName == UnitName("player") and tempRank == 2 then
 			return true
@@ -704,6 +714,23 @@ function CommDKP:GetGuildTeamList(asObject)
 	return _list
 end
 
+function CommDKP:FormatPriceTable(minBids, convertToTable)
+	minBids = minBids or CommDKP:GetTable(CommDKP_MinBids, true);
+	convertToTable = convertToTable or false; --false means it will convert to an array
+	local priceTable = {}
+
+	if withIds then
+		for i=1, #minBids do
+			priceTable[minBids[i].itemID] = minBids[i];
+		end
+	else
+		for key, value in pairs(minBids) do
+			tinsert(priceTable, value);
+		end
+	end
+	return priceTable;
+end
+
 -- moved to core from ManageEntries as this is called from comm.lua aswell
 function CommDKP:SetCurrentTeam(index)
 	CommDKP:GetTable(CommDKP_DB, false)["defaults"]["CurrentTeam"] = tostring(index);
@@ -712,7 +739,8 @@ function CommDKP:SetCurrentTeam(index)
 
 	-- reset dkp table and update it
 	core.WorkingTable = CommDKP:GetTable(CommDKP_DKPTable, true);
-	core.PriceTable	= CommDKP:GetTable(CommDKP_MinBids, true);
+	core.PriceTable	= CommDKP:FormatPriceTable();
+
 	CommDKP:DKPTable_Update();
 
 	-- reset dkp history table and update it

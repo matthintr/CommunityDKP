@@ -54,7 +54,7 @@ if GetLocale() == "esES" or GetLocale() == "esMX" then
     ADDNEGVALUES = "Agregar a valores negativos",
     ADDRAIDMEMBERS = "Agregar miembros de incursión",
     ADDRAIDMEMBERSCONFIRM = "¿Está seguro de que desea agregar miembros de incursión que faltan a la tabla DKP?",
-    ADDRAIDMEMBERSTTDESC = "Agrega todos los miembros de la banda / grupo que estén en el gremio a la tabla DKP.",
+    ADDRAIDMEMBERSTTDESC = "Agrega todos los miembros de la banda / grupo que estén en el gremio a la tabla DKP.", --TODO remove the "in guild" qualifier
     ADDREMDKPTABLEENTRIES = "Agregar / quitar entradas de tabla DKP",
     ADDTARGET = "Añadir objetivo",
     ADDTARGETTODKPTABLE = "Agregar destino a la tabla DKP",
@@ -85,6 +85,8 @@ if GetLocale() == "esES" or GetLocale() == "esMX" then
     ANTISNIPE = "Anti Snipe",
     ANTISNIPETTDESC = "Número de segundos que desea que se extienda el temporizador de ofertas si se recibe una oferta cuando el temporizador de ofertas es inferior a 10 segundos. (Para evitar el último intento de francotirador)",
     ANTISNIPETTWARN = "Establecer en 0 para desactivar anti snipe.",
+    ANNOUNCEINRAIDWARNING = "Announce in Raid Warning", -- NEEDS TRANSLATIONS
+    ANNOUNCEINRAIDWARNINGDESC = "If checked, announcements for higgest bid/bidder will be broadcasted via Raid Warning, not Raid chat.", -- NEEDS TRANSLATIONS
     APPDECAYTTDESC = "Cantidad de DKP por la que desea reducir las entradas de DKP como una disminución semanal. Este debería ser un número positivo. Si \"Solo jugadores seleccionados\" no se selecciona a continuación, se aplicará a todas las entradas.",
     APPDECAYTTWARN = "Advertencia: no se puede deshacer.",
     APPLYDECAY = "Aplicar decadencia",
@@ -361,6 +363,7 @@ if GetLocale() == "esES" or GetLocale() == "esMX" then
     INZONEONLY = "En la misma zona",
     INZONEONLYTTDESC = "Esto solo otorgará DKP de banda a los jugadores que estén en la misma zona que tú. (Para usar con adjudicación automática, temporizador de incursión y distribución de suma cero)",
     ITEM = "Articulo",
+    ITEMS = "Items",
     ITEMCOST = "Coste del artículo",
     ITEMCOSTTTDESC = "DKP cobrará al jugador por el artículo.",
     ITEMCOSTTYPES = "Tipos de costos de artículos",
@@ -532,6 +535,7 @@ if GetLocale() == "esES" or GetLocale() == "esMX" then
     PLAYERSFORREASON = "jugadores por razones",
     PLAYERVALIDATE = "Ningún jugador seleccionado",
     PLEASEUSENUMS = "Por favor use números.",
+    PRICETAB = "Pricing", --TODO
     PLEASEVALIDATE = "Las entradas inválidas fueron eliminadas. Por favor valide sus tablas. (En el menú contextual del botón derecho en la tabla DKP)",
     POINTS = "Puntos",
     POINTSTTDESC = "Ingrese la cantidad de DKP que se distribuirá a los jugadores seleccionados en la mesa DKP. Los valores predeterminados se pueden cambiar en la pestaña \"Opciones \" a continuación.",
@@ -686,6 +690,7 @@ if GetLocale() == "esES" or GetLocale() == "esMX" then
     TEAMCURRENTLISTDESC2 = "All tabs/tables base their data on value coming from this dropdown. Be sure to always check which team you have selected before awarding any DKP or starting the raid timer.",
     TEAMCURRENTLISTDESC3 = "You cannot change the currently selected team from this drop down. To change currently selected team go to /dkp main window",
     TEAMLIST = "List of teams",
+    TEAMCURRENTLISTLABEL = "Team selector",
     TEAMLISTDESC = "List of all the teams defined for current player's realm/guild. Team is a smaller subsection of a guild. Usefull for guilds with more than one raiding groups",
     TEAMMANAGEMENTHEADER = "Guild team management section",
     TEAMSELECT = "Select Team",
@@ -806,16 +811,17 @@ if GetLocale() == "esES" or GetLocale() == "esMX" then
     PASS                  = "Pasar",
 
     MIGRATIONDETECTED     = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables and settings to CommunityDKP?", --TODO TRANSLATE:
+    MIGRATIONTEAM         = "CommunityDKP has detected an active MonolithDKP addon.|n|nDo you want to migrate its current tables|nas a NEW TEAM for your current GUILD|nto CommunityDKP?", --TODO TRANSLATE:
     MIGRATIONUNAVAILABLE  = "Please disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP.", --TODO TRANSLATE:
     MIGRATIONCONFIRM      = "This will overwrite your existing CommunityDKP tables and settings.|n|nDo you want to continue?", --TODO TRANSLATE:
     MIGRATIONCANCELED     = "Migration canceled.|n|nPlease disable MonolithDKP and /reload the UI if you want to continue with CommunityDKP without using your current tables and settings.", --TODO TRANSLATE:
     MIGRATIONCOMPLETED    = "Migration complete.|n|nPlease disable MonolithDKP and /reload the UI.", --TODO TRANSLATE:
 
     --TODO TRANSLATE:
-    CHANGELOG1 = "CommunityDKP - Update 2",
-    CHANGELOG2 = " - Numerous Bug Fixes and Enhancements",
-    CHANGELOG3 = " - Migration Assitant from MonolithDKP",
-    CHANGELOG4 = " - Better Syncing of DKP Table when Profiles are added",
+    CHANGELOG1 = "CommunityDKP - v3.2.3",
+    CHANGELOG2 = " - Upgraded and Refactored the MinBids Table",
+    CHANGELOG3 = " - Fixed a Minbid Save Issue on Disenchant that was removing the Minbid price",
+    CHANGELOG4 = " - Implemented PriceList API Support (contribution by styxhope)",
     CHANGELOG5 = "",
     CHANGELOG6 = "",
     CHANGELOG7 = "",
